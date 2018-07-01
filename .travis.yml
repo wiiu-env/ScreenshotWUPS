@@ -1,0 +1,66 @@
+language: cpp
+os: linux
+sudo: false
+dist: trusty
+branches:
+  only:
+  - master
+env:
+  global:
+  - DEVKITPRO=/opt/devkitpro
+  - WUT_ROOT=/opt/devkitpro/wut
+  - DEVKITPPC=/opt/devkitpro/devkitPPC
+  - PORTLIBREPOS=$HOME/portlibrepos
+cache:
+  directories:
+  - "$HOME/.local"
+  - "$DEVKITPRO"
+addons:
+  apt:
+    packages:
+    - p7zip-full
+before_install:
+- mkdir -p "${PORTLIBREPOS}"
+- mkdir -p "${DEVKITPRO}"
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget https://github.com/devkitPro/pacman/releases/download/devkitpro-pacman-1.0.1/devkitpro-pacman.deb
+  -O /tmp/devkitpro-pacman.deb; fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo dpkg -i /tmp/devkitpro-pacman.deb;
+  fi
+- yes | sudo dkp-pacman -Syu devkitPPC --needed
+- yes | sudo dkp-pacman -Syu general-tools --needed
+- wget https://github.com/decaf-emu/wut/releases/download/1.0.0-beta2/wut.linux64.7z
+install:
+- 7z x -y $(ls | grep "linux") -o${WUT_ROOT}
+- cd $PORTLIBREPOS
+- git clone https://github.com/Maschell/WiiUPluginSystem.git
+- git clone https://github.com/Maschell/libutils.git -b wut
+- cd WiiUPluginSystem
+- make && make install
+- cd $PORTLIBREPOS
+- cd libutils
+- mkdir build && cd build
+- cmake -DCMAKE_TOOLCHAIN_FILE=$WUT_ROOT/share/wut.toolchain.cmake -DCMAKE_INSTALL_PREFIX=$WUT_ROOT
+  ../
+- make install
+- cd $PORTLIBREPOS
+before_script:
+- cd $TRAVIS_BUILD_DIR/
+script:
+- make -j8
+before_deploy:
+- cd $TRAVIS_BUILD_DIR/
+- mkdir -p "wiiu/plugins"
+- commit="$(git rev-parse --short=7 HEAD)"
+- find -type f -name "*.mod" | xargs -i cp {} wiiu/plugins
+- zip -r screenshot_wups_nightly_$commit.zip wiiu
+- git config --local user.name "Maschell"
+- git config --local user.email "Maschell@gmx.de"
+- git tag "ScreenshotWUPS-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: HU3Ymp5pGjTj4z59sFAkDc02WhQol+CER9UTEpvLjLuklzbguuSc6rtnorA+krWBJvk1+Gl50JqlhhI9HuauU/oTvNQLah3DC29aDmxAHFQ7fk5FDap+BBYTkb7CKPI5l1k4GRqK3EwKQMJ2L+/BdwraLHazLbU22OPPYSZvrsGBej3Nvdg6C6QcwYN3E2nO5lbxnclag+6MduKKfyvd7zA/llexrZXYC71HskEcRHIX/ol5l3yiR9L/0LcGU1hn63+O6wdC58+RxuvfRE8Zj/O853yWmAs4ltUBsFstDMvzmw9aYlN0bK8nvYvv1oBOR4ql4aPwkaEjAUzEorIBIFn8gSSdHNM5QmW+Zf+nPdIQVpS4EsDZbvM7QoptdgOuZVk7MnTVKg/7vZVDI7IMm3T/GleuwsvKs6+/jPjEhvslyKLKRaQGREGPCtAkPbDn9S8eVyhgkqQk1g5+O0RA6t9FmiOS+QPyhjSyqGPaHXQvsiN2PmGnE1YbjqUBBoy2tly4TUb+M/gGYDipKyCuQiqCpp04GYmIIHjxpIZOTZGA/klUODKTBG6DOnVNBqsYBpSwO9PIYO+gPWWBXzRF4A2/fB2TuAWVSB3FZ/Ml7AVZWXcU8l84uhKmLNJ+oeXDDDcrt4iAvjfoiWWATD0WEoZgiFDQ98nM6EqgRMQ4f1Q=
+  file: screenshot_wups_nightly_$commit.zip
+  on:
+    repo: Maschell/ScreenshotWUPS
