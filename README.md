@@ -1,4 +1,4 @@
-# Screenshot tool
+# Screenshot tool [![Build Status](https://api.travis-ci.org/Maschell/ScreenshotWUPS.svg?branch=master)](https://travis-ci.org/Maschell/ScreenshotWUPS)
 
 This is just a simple plugin that takes screenshot of the TV and DRC screen. The screenshot will saved on the sd card.
 
