@@ -1,6 +1,6 @@
 language: cpp
 os: linux
-sudo: false
+sudo: required
 dist: trusty
 branches:
   only:
