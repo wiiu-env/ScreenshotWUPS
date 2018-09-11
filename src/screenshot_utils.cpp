@@ -70,11 +70,12 @@ JpegInformation * convertToJpeg(uint8_t * sourceBuffer, uint32_t width, uint32_t
 bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, uint32_t targetWidth, uint32_t targetHeight) {
     // Making sure the buffers are not NULL
     if (sourceBuffer != NULL && targetBuffer != NULL) {
+        uint32_t depth = 1;
         targetBuffer->surface.use =         (GX2SurfaceUse) (GX2_SURFACE_USE_COLOR_BUFFER | GX2_SURFACE_USE_TEXTURE);
         targetBuffer->surface.dim =         GX2_SURFACE_DIM_TEXTURE_2D;
         targetBuffer->surface.width =       targetWidth;
         targetBuffer->surface.height =      targetHeight;
-        targetBuffer->surface.depth =       1;
+        targetBuffer->surface.depth =       depth;
         targetBuffer->surface.mipLevels =   1;
         targetBuffer->surface.format =      GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8;
         targetBuffer->surface.aa =          GX2_AA_MODE1X;
@@ -82,6 +83,22 @@ bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, ui
         targetBuffer->viewMip =             0;
         targetBuffer->viewFirstSlice =      0;
         targetBuffer->viewNumSlices =       1;
+        targetBuffer->surface.swizzle =     0;
+        targetBuffer->surface.alignment =   0;
+        targetBuffer->surface.pitch =       0;
+
+        uint32_t i;
+        for(i = 0; i < 13; i++) {
+            targetBuffer->surface.mipLevelOffset[i] = 0;
+        }
+        targetBuffer->viewMip = 0;
+        targetBuffer->viewFirstSlice = 0;
+        targetBuffer->viewNumSlices = depth;
+        targetBuffer->aaBuffer = NULL;
+        targetBuffer->aaSize = 0;
+        for(i = 0; i < 5; i++){
+            targetBuffer->regs[i] = 0;
+        }
 
         GX2CalcSurfaceSizeAndAlignment(&targetBuffer->surface);
         GX2InitColorBufferRegs(targetBuffer);
