@@ -23,3 +23,17 @@ Other external libraries are already located in the `libs` folder.
 
 - libjpeg
 - libturbojpeg
+
+### Building using the Dockerfile
+It's possible to use a docker image for building. This way you don't need anything installed on your host system.
+
+```
+# Build docker image (only needed once
+docker build . -t screenshot-builder
+
+# make 
+docker run -it --rm -v ${PWD}:/project screenshot-builder make
+
+# make clean
+docker run -it --rm -v ${PWD}:/project screenshot-builder make clean
+```
