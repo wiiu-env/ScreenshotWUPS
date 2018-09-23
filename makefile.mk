@@ -16,7 +16,7 @@ WUT_ENABLE_CPP      := 0
 WUT_DEFAULT_MALLOC  := 1
 
 # Target filename
-TARGET              := $(notdir $(CURDIR)).mod
+TARGET              := screenshot.mod
 
 # Source directories
 SOURCES             := src/
