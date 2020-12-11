@@ -24,3 +24,16 @@ Other external libraries are already located in the `libs` folder.
 
 - libjpeg
 - libturbojpeg
+
+## Building via docker
+
+```
+# Build docker image (only needed once)
+docker build . -t screenshot-plugin-builder
+
+# make 
+docker run -it --rm -v ${PWD}:/project screenshot-plugin-builder make
+
+# make clean
+docker run -it --rm -v ${PWD}:/project screenshot-plugin-builder make clean
+```

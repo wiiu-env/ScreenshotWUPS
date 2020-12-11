@@ -20,7 +20,7 @@ WUMS_ROOT := $(DEVKITPRO)/wums
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
 #-------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	screenshot
 BUILD		:=	build
 SOURCES		:=	src src/utils src/fs
 DATA		:=	data
