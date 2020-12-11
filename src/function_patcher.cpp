@@ -15,9 +15,10 @@ static uint8_t screenshotCooldown __attribute__((section(".data"))) = 0;
 static uint32_t counter __attribute__((section(".data"))) = 0;
 
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
-    int32_t result = real_VPADRead(chan, buffer, buffer_size, error);
+    VPADReadError real_error;
+    int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
 
-    if(result > 0 && *error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCooldown == 0 && OSIsHomeButtonMenuEnabled()) {
+    if(result > 0 && real_error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCooldown == 0 && OSIsHomeButtonMenuEnabled()) {
         counter++;
         takeScreenshotTV = true;
         takeScreenshotDRC = true;
@@ -28,6 +29,9 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
         screenshotCooldown--;
     }
 
+    if (error) {
+        *error = real_error;
+    }
     return result;
 }
 
