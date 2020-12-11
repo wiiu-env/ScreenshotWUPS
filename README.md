@@ -3,19 +3,20 @@
 This is just a simple plugin that takes screenshot of the TV and DRC screen. The screenshot will saved on the sd card in the folder "sd:/wiiu/screenshots/"
 
 ## Wii U Plugin System
-This is a plugin for the [Wii U Plugin System (WUPS)](https://github.com/Maschell/WiiUPluginSystem/). To be able to use this plugin you have to place the resulting `.mod` file into the following folder:
+This is a plugin for the [Wii U Plugin System (WUPS)](https://github.com/wiiu-env/WiiUPluginSystem/). To be able to use this plugin you have to place the resulting `.wps` file into the following folder:
 
 ```
 sd:/wiiu/plugins
 ```
-When the file is placed on the SDCard you can load it with [plugin loader](https://github.com/Maschell/WiiUPluginSystem/).
+When the file is placed on the SDCard you can load it with [WUPS backend module](https://github.com/Maschell/WiiUPluginLoaderBackend/).
+You also need the [Memory Mapping Module](https://github.com/wiiu-env/MemoryMappingModule/).
 
 ## Building
 
 For building you need: 
-- [wups](https://github.com/Maschell/WiiUPluginSystem)
+- [wups](https://github.com/wiiu-env/WiiUPluginSystem)
 - [wut](https://github.com/decaf-emu/wut)
-- [libutilswut](https://github.com/Maschell/libutils/tree/wut) (WUT version) for common functions.
+- [libmappedmemory](https://github.com/wiiu-env/libmappedmemory)
 
 Install them (in this order) according to their README's. Don't forget the dependencies of the libs itself.
 
@@ -23,17 +24,3 @@ Other external libraries are already located in the `libs` folder.
 
 - libjpeg
 - libturbojpeg
-
-### Building using the Dockerfile
-It's possible to use a docker image for building. This way you don't need anything installed on your host system.
-
-```
-# Build docker image (only needed once
-docker build . -t screenshot-builder
-
-# make 
-docker run -it --rm -v ${PWD}:/project screenshot-builder make
-
-# make clean
-docker run -it --rm -v ${PWD}:/project screenshot-builder make clean
-```

@@ -3,14 +3,11 @@
 #include <vector>
 #include <string>
 #include <string.h>
-#include <dirent.h>
+#include <whb/log_udp.h>
 #include <coreinit/cache.h>
 #include <coreinit/thread.h>
-#include <coreinit/time.h>
 #include <coreinit/screen.h>
 #include <vpad/input.h>
-#include <nsysnet/socket.h>
-#include <utils/logger.h>
 #include "retain_vars.hpp"
 
 // Mandatory plugin information.
@@ -21,37 +18,25 @@ WUPS_PLUGIN_AUTHOR("Maschell");
 WUPS_PLUGIN_LICENSE("GPL");
 
 // FS Access
-WUPS_FS_ACCESS()
+WUPS_USE_WUT_CRT()
 
 uint32_t SplashScreen(int32_t time,int32_t combotime);
 
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
-    socket_lib_init();
+    WHBLogUdpInit();
 
-    log_init();
+    //uint32_t res = SplashScreen(10,2);
 
-    uint32_t res = SplashScreen(10,2);
-
-    gButtonCombo = res;
+    gButtonCombo = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
     ICInvalidateRange((void*)(&gButtonCombo), 4);
     DCFlushRange((void*)(&gButtonCombo), 4);
 }
 
 // Called whenever an application was started.
 ON_APPLICATION_START(my_args) {
-    socket_lib_init();
-    log_init();
-
-    gAppStatus = WUPS_APP_STATUS_FOREGROUND;
-
-    log_init();
+    WHBLogUdpInit();
 }
-
-ON_APP_STATUS_CHANGED(status) {
-    gAppStatus = status;
-}
-
 
 #define FPS 60
 uint32_t SplashScreen(int32_t time,int32_t combotime) {

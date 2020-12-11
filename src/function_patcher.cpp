@@ -32,24 +32,24 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 }
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, int32_t scan_target) {
-    if((takeScreenshotTV || takeScreenshotDRC) && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
+    if((takeScreenshotTV || takeScreenshotDRC)) {
         OSCalendarTime output;
         OSTicksToCalendarTime(OSGetTime(), &output);
         char buffer[255] = {0};
-        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/",WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon,output.tm_mday);
+        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/",WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon+1,output.tm_mday);
 
         FSUtils::CreateSubfolder(buffer);
 
         snprintf(buffer,254,"%s%04ld-%02ld-%02ld/%04ld-%02ld-%02ld_%02ld.%02ld.%02ld_",
-                 WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon,output.tm_mday,output.tm_year,output.tm_mon,output.tm_mday,output.tm_hour,output.tm_min,output.tm_sec);
+                 WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon+1,output.tm_mday,output.tm_year,output.tm_mon+1,output.tm_mday,output.tm_hour,output.tm_min,output.tm_sec);
 
-        if(scan_target == 1 && colorBuffer != NULL && takeScreenshotTV && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
-            DEBUG_FUNCTION_LINE("Lets take a screenshot from TV. Source format: %d \n",colorBuffer->surface.format);
+        if(scan_target == 1 && colorBuffer != NULL && takeScreenshotTV) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from TV. Source format: %d",colorBuffer->surface.format);
             takeScreenshot((GX2ColorBuffer *)colorBuffer, StringTools::strfmt("%sTV.jpg",buffer).c_str());
             takeScreenshotTV = false;
         }
-        if(scan_target == 4 && colorBuffer != NULL && takeScreenshotDRC && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
-            DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC. Source format: %d \n",colorBuffer->surface.format);
+        if(scan_target == 4 && colorBuffer != NULL && takeScreenshotDRC) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC. Source format: %d",colorBuffer->surface.format);
             takeScreenshot((GX2ColorBuffer *)colorBuffer, StringTools::strfmt("%sDRC.jpg",buffer).c_str());
             takeScreenshotDRC = false;
         }

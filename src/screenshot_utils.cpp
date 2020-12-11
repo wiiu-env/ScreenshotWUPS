@@ -1,11 +1,10 @@
 #include "screenshot_utils.h"
 
 #include <fs/FSUtils.h>
-#include <malloc.h>
 #include <coreinit/cache.h>
 #include <gx2/event.h>
-#include <gx2/surface.h>
 #include <gx2/mem.h>
+#include <memory/mappedmemory.h>
 
 
 #ifdef __cplusplus
@@ -24,12 +23,12 @@ GX2ResolveAAColorBuffer(const GX2ColorBuffer * srcColorBuffer,
 
 JpegInformation * convertToJpeg(uint8_t * sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, uint32_t format, int32_t quality) {
     if(sourceBuffer == NULL) {
-        DEBUG_FUNCTION_LINE("path or buffer NULL\n");
+        DEBUG_FUNCTION_LINE("path or buffer NULL");
         return NULL;
     }
     if((    format != GX2_SURFACE_FORMAT_SRGB_R8_G8_B8_A8 &&
             format != GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8)) {
-        DEBUG_FUNCTION_LINE("Format not supported\n");
+        DEBUG_FUNCTION_LINE("Format not supported");
         return NULL;
     }
 
@@ -37,7 +36,7 @@ JpegInformation * convertToJpeg(uint8_t * sourceBuffer, uint32_t width, uint32_t
 
     if(handle == NULL) {
         const char *err = (const char *) tjGetErrorStr();
-        DEBUG_FUNCTION_LINE("TJ Error: %s UNABLE TO INIT TJ Compressor Object\n",err);
+        DEBUG_FUNCTION_LINE("TJ Error: %s UNABLE TO INIT TJ Compressor Object",err);
         return NULL;
     }
 
@@ -57,10 +56,10 @@ JpegInformation * convertToJpeg(uint8_t * sourceBuffer, uint32_t width, uint32_t
     int32_t tj_stat = tjCompress2( handle, sourceBuffer, width, pitch * nbands, height, pixelFormat, &(jpegBuf), &jpegSize, jpegSubsamp, jpegQual, flags);
     if(tj_stat != 0) {
         const char *err = (const char *) tjGetErrorStr();
-        DEBUG_FUNCTION_LINE("TurboJPEG Error: %s UNABLE TO COMPRESS JPEG IMAGE\n", err);
+        DEBUG_FUNCTION_LINE("TurboJPEG Error: %s UNABLE TO COMPRESS JPEG IMAGE", err);
         tjDestroy(handle);
     } else {
-        DEBUG_FUNCTION_LINE("Success! %08X %08X\n",jpegBuf, jpegSize);
+        DEBUG_FUNCTION_LINE("Success! %08X %08X",jpegBuf, jpegSize);
         return new JpegInformation(handle, jpegBuf, jpegSize);
     }
 
@@ -104,12 +103,12 @@ bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, ui
         GX2InitColorBufferRegs(targetBuffer);
 
         // Let's allocate the memory.
-        targetBuffer->surface.image = memalign(targetBuffer->surface.alignment,targetBuffer->surface.imageSize);
+        targetBuffer->surface.image = MEMAllocFromMappedMemoryForGX2Ex(targetBuffer->surface.imageSize,targetBuffer->surface.alignment);
         if(targetBuffer->surface.image == NULL) {
-            DEBUG_FUNCTION_LINE("failed to allocate memory.\n");
+            DEBUG_FUNCTION_LINE("failed to allocate memory.");
             return false;
         }
-        DEBUG_FUNCTION_LINE("Allocated image data buffer. data %08X  size %08X \n",targetBuffer->surface.image,targetBuffer->surface.imageSize);
+        DEBUG_FUNCTION_LINE("Allocated image data buffer. data %08X  size %08X ",targetBuffer->surface.image,targetBuffer->surface.imageSize);
 
         GX2Invalidate(GX2_INVALIDATE_MODE_CPU, targetBuffer->surface.image, targetBuffer->surface.imageSize);
         if (sourceBuffer->surface.aa == GX2_AA_MODE1X) {
@@ -125,11 +124,11 @@ bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, ui
             tempSurface.aa = GX2_AA_MODE1X;
             GX2CalcSurfaceSizeAndAlignment(&tempSurface);
 
-            tempSurface.image = memalign(tempSurface.alignment,tempSurface.imageSize);
+            tempSurface.image = MEMAllocFromMappedMemoryForGX2Ex(tempSurface.imageSize, tempSurface.alignment);
             if(tempSurface.image == NULL) {
-                DEBUG_FUNCTION_LINE("failed to allocate data AA.\n");
+                DEBUG_FUNCTION_LINE("failed to allocate data AA.");
                 if(targetBuffer->surface.image != NULL) {
-                    free(targetBuffer->surface.image);
+                    MEMFreeToMappedMemory(targetBuffer->surface.image);
                     targetBuffer->surface.image = NULL;
                 }
                 return false;
@@ -141,13 +140,13 @@ bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, ui
             GX2DrawDone();
 
             if(tempSurface.image != NULL) {
-                free(tempSurface.image);
+                MEMFreeToMappedMemory(tempSurface.image);
                 tempSurface.image = NULL;
             }
         }
         return true;
     } else {
-        DEBUG_FUNCTION_LINE("Couldn't copy buffer, pointer was NULL\n");
+        DEBUG_FUNCTION_LINE("Couldn't copy buffer, pointer was NULL");
         return false;
     }
 }
@@ -156,7 +155,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path) {
     if(srcBuffer == NULL) {
         return false;
     }
-    DEBUG_FUNCTION_LINE("Taking screenshot. %s\n",path);
+    DEBUG_FUNCTION_LINE("Taking screenshot. %s",path);
 
     GX2ColorBuffer colorBuffer;
     GX2ColorBuffer * saveBuffer = NULL;
@@ -180,15 +179,15 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path) {
                     if(height >= 1080) {
                         width = 1280;
                         height = 720;
-                        DEBUG_FUNCTION_LINE("Switching to 720p.\n");
+                        DEBUG_FUNCTION_LINE("Switching to 720p.");
                     } else if(height >= 720) {
                         width = 854;
                         height = 480;
-                        DEBUG_FUNCTION_LINE("Switching to 480p.\n");
+                        DEBUG_FUNCTION_LINE("Switching to 480p.");
                     } else if(height >= 480) {
                         width = 640;
                         height = 360;
-                        DEBUG_FUNCTION_LINE("Switching to 360p.\n");
+                        DEBUG_FUNCTION_LINE("Switching to 360p.");
                     } else {
                         // Cancel the screenshot if the resolution would be too low.
                         cancel = true;
@@ -205,7 +204,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path) {
         if(cancel) {
             // Free the memory on error.
             if(colorBuffer.surface.image != NULL) {
-                free(colorBuffer.surface.image);
+                MEMFreeToMappedMemory(colorBuffer.surface.image);
                 colorBuffer.surface.image = NULL;
             }
             return false;
@@ -217,22 +216,22 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path) {
         // Wait for GPU to finish
         GX2DrawDone();
 
-        DEBUG_FUNCTION_LINE("Trying to save.\n");
+        DEBUG_FUNCTION_LINE("Trying to save.");
 
         JpegInformation * jpegResult = convertToJpeg((uint8_t *) saveBuffer->surface.image,width,height,saveBuffer->surface.pitch,saveBuffer->surface.format, 95);
         if(jpegResult != NULL) {
-            DEBUG_FUNCTION_LINE("Encoded file as JPEG. size = %lld.\n", jpegResult->getSize());
+            DEBUG_FUNCTION_LINE("Encoded file as JPEG. size = %lld.", jpegResult->getSize());
             DCFlushRange(jpegResult->getBuffer(), jpegResult->getSize());
             valid = FSUtils::saveBufferToFile(path, (void *) jpegResult->getBuffer(), jpegResult->getSize());
             if(!valid) {
-                DEBUG_FUNCTION_LINE("Failed to save buffer to %s \n",path);
+                DEBUG_FUNCTION_LINE("Failed to save buffer to %s ",path);
             }
             delete jpegResult;
         }
 
         // Free the colorbuffer copy.
         if(colorBuffer.surface.image != NULL) {
-            free(colorBuffer.surface.image);
+            MEMFreeToMappedMemory(colorBuffer.surface.image);
             colorBuffer.surface.image = NULL;
             saveBuffer = NULL;
         }
@@ -243,15 +242,15 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path) {
             if(height >= 1080) {
                 width = 1280;
                 height = 720;
-                DEBUG_FUNCTION_LINE("Switching to 720p.\n");
+                DEBUG_FUNCTION_LINE("Switching to 720p.");
             } else if(height >= 720) {
                 width = 854;
                 height = 480;
-                DEBUG_FUNCTION_LINE("Switching to 480p.\n");
+                DEBUG_FUNCTION_LINE("Switching to 480p.");
             } else if(height >= 480) {
                 width = 640;
                 height = 360;
-                DEBUG_FUNCTION_LINE("Switching to 360p.\n");
+                DEBUG_FUNCTION_LINE("Switching to 360p.");
             } else {
                 return false;
             }

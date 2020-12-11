@@ -1,2 +1,7 @@
 build/*
 *.mod
+cmake-build-debug/
+.idea/
+*.wps
+*.elf
+CMakeLists.txt
