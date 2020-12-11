@@ -17,13 +17,7 @@ For building you need:
 - [wups](https://github.com/wiiu-env/WiiUPluginSystem)
 - [wut](https://github.com/decaf-emu/wut)
 - [libmappedmemory](https://github.com/wiiu-env/libmappedmemory)
-
-Install them (in this order) according to their README's. Don't forget the dependencies of the libs itself.
-
-Other external libraries are already located in the `libs` folder.
-
-- libjpeg
-- libturbojpeg
+- libturbojpeg (install via `pacman -Syu dkp-libs/ppc-libjpeg-turbo`)
 
 ## Building via docker
 
