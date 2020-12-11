@@ -40,11 +40,11 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
         OSCalendarTime output;
         OSTicksToCalendarTime(OSGetTime(), &output);
         char buffer[255] = {0};
-        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/",WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon+1,output.tm_mday);
+        snprintf(buffer,254,"%s%04d-%02d-%02d/",WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon+1,output.tm_mday);
 
         FSUtils::CreateSubfolder(buffer);
 
-        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/%04ld-%02ld-%02ld_%02ld.%02ld.%02ld_",
+        snprintf(buffer,254,"%s%04d-%02d-%02d/%04d-%02d-%02d_%02d.%02d.%02d_",
                  WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon+1,output.tm_mday,output.tm_year,output.tm_mon+1,output.tm_mday,output.tm_hour,output.tm_min,output.tm_sec);
 
         if(scan_target == 1 && colorBuffer != NULL && takeScreenshotTV) {
