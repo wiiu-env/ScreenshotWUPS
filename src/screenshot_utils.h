@@ -1,14 +1,13 @@
-#ifndef _SCREENSHOT_UTILS_H_
-#define _SCREENSHOT_UTILS_H_
+#pragma once
 
+#include "common.h"
+#include "utils/logger.h"
 #include <gx2/surface.h>
-#include <utils/logger.h>
-#include "JpegInformation.h"
+#include <memory>
+#include <optional>
+#include <string>
 
-JpegInformation * convertToJpeg(uint8_t * sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, uint32_t format, int32_t quality);
+bool saveTextureAsPicture(const std::string &path, uint8_t *sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, GX2SurfaceFormat format, ImageOutputFormatEnum outputFormat, bool convertRGBtoSRGB, int quality);
 
-bool copyBuffer(GX2ColorBuffer * sourceBuffer, GX2ColorBuffer * targetBuffer, uint32_t targetWidth, uint32_t targetHeight);
 
-bool takeScreenshot(GX2ColorBuffer *srcBuffer,const char * path);
-
-#endif
+bool takeScreenshot(GX2ColorBuffer *srcBuffer, const std::string &path, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality);

@@ -1,6 +1,15 @@
-#ifndef COMMON_H_
-#define COMMON_H_
+#pragma once
 
-#define WIIU_SCREENSHOT_PATH "sd:/wiiu/screenshots/"
+#define WIIU_SCREENSHOT_PATH "fs:/vol/external01/wiiu/screenshots/"
 
-#endif // COMMON_H_
+typedef enum {
+    IMAGE_OUTPUT_FORMAT_JPEG = 0,
+    IMAGE_OUTPUT_FORMAT_PNG  = 1,
+    IMAGE_OUTPUT_FORMAT_BMP  = 2,
+} ImageOutputFormatEnum;
+
+typedef enum {
+    IMAGE_SOURCE_TV_AND_DRC = 0,
+    IMAGE_SOURCE_TV         = 1,
+    IMAGE_SOURCE_DRC        = 2,
+} ImageSourceEnum;

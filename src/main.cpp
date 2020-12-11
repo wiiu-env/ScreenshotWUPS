@@ -1,155 +1,254 @@
-#include <wups.h>
-#include <malloc.h>
-#include <vector>
-#include <string>
-#include <string.h>
-#include <dirent.h>
-#include <coreinit/cache.h>
-#include <coreinit/thread.h>
-#include <coreinit/time.h>
-#include <coreinit/screen.h>
-#include <vpad/input.h>
-#include <nsysnet/socket.h>
-#include <utils/logger.h>
+#include "main.h"
 #include "retain_vars.hpp"
+#include "utils/logger.h"
+#include <coreinit/cache.h>
+#include <coreinit/title.h>
+#include <malloc.h>
+#include <nn/acp.h>
+#include <string>
+#include <vpad/input.h>
+#include <wups.h>
+#include <wups/config/WUPSConfigItemBoolean.h>
+#include <wups/config/WUPSConfigItemIntegerRange.h>
+#include <wups/config/WUPSConfigItemMultipleValues.h>
 
 // Mandatory plugin information.
-WUPS_PLUGIN_NAME("Screenshot tool");
+WUPS_PLUGIN_NAME("Screenshot plugin");
 WUPS_PLUGIN_DESCRIPTION("This plugin allows you to make screenshots that will be saved to the sd card");
-WUPS_PLUGIN_VERSION("v0.1");
+WUPS_PLUGIN_VERSION(VERSION_FULL);
 WUPS_PLUGIN_AUTHOR("Maschell");
 WUPS_PLUGIN_LICENSE("GPL");
 
 // FS Access
-WUPS_FS_ACCESS()
+WUPS_USE_WUT_DEVOPTAB();
 
-uint32_t SplashScreen(int32_t time,int32_t combotime);
+WUPS_USE_STORAGE("screenshot_plugin");
+
+#define ENABLED_CONFIG_STRING "enabled"
+#define FORMAT_CONFIG_STRING  "format"
+#define QUALITY_CONFIG_STRING "quality"
+#define SCREEN_CONFIG_STRING  "screen"
 
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
-    socket_lib_init();
+    initLogging();
+    gButtonCombo = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
+    OSMemoryBarrier();
 
-    log_init();
+    // Open storage to read values
+    WUPSStorageError storageRes = WUPS_OpenStorage();
+    if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to open storage %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+    } else {
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetInt(nullptr, ENABLED_CONFIG_STRING, reinterpret_cast<int32_t *>(&gEnabled))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreBool(nullptr, ENABLED_CONFIG_STRING, gEnabled) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetInt(nullptr, FORMAT_CONFIG_STRING, reinterpret_cast<int32_t *>(&gOutputFormat))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreBool(nullptr, FORMAT_CONFIG_STRING, gOutputFormat) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
 
-    uint32_t res = SplashScreen(10,2);
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetInt(nullptr, QUALITY_CONFIG_STRING, reinterpret_cast<int32_t *>(&gQuality))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreInt(nullptr, QUALITY_CONFIG_STRING, (int32_t) gQuality) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
 
-    gButtonCombo = res;
-    ICInvalidateRange((void*)(&gButtonCombo), 4);
-    DCFlushRange((void*)(&gButtonCombo), 4);
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetInt(nullptr, SCREEN_CONFIG_STRING, reinterpret_cast<int32_t *>(&gImageSource))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreInt(nullptr, SCREEN_CONFIG_STRING, (int32_t) gImageSource) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
+
+        // Close storage
+        if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to close storage");
+        }
+    }
+    if (gOutputFormat >= 3) {
+        gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
+    }
+    if (gQuality < 10) {
+        gQuality = 10;
+    } else if (gQuality > 100) {
+        gQuality = 100;
+    }
+}
+
+void formatChanged(ConfigItemMultipleValues *item, uint32_t newValue) {
+    DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configID, newValue);
+    gOutputFormat = (ImageOutputFormatEnum) newValue;
+
+    if (gOutputFormat >= 3) {
+        gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
+    }
+
+    WUPS_StoreInt(nullptr, item->configID, (int32_t) newValue);
+}
+
+void imageSourceChanged(ConfigItemMultipleValues *item, uint32_t newValue) {
+    DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configID, newValue);
+    gImageSource = (ImageSourceEnum) newValue;
+
+    if (gImageSource >= 3) {
+        gImageSource = IMAGE_SOURCE_TV_AND_DRC;
+    }
+
+    WUPS_StoreInt(nullptr, item->configID, (int32_t) newValue);
+}
+
+void qualityChanged(ConfigItemIntegerRange *item, int32_t newValue) {
+    DEBUG_FUNCTION_LINE("New quality: %d", newValue);
+    gQuality = (ImageOutputFormatEnum) newValue;
+
+    if (gQuality < 10) {
+        gQuality = 10;
+    } else if (gQuality > 100) {
+        gQuality = 100;
+    }
+
+    WUPS_StoreInt(nullptr, QUALITY_CONFIG_STRING, (int32_t) gQuality);
+}
+
+void enabledChanged(ConfigItemBoolean *item, bool newValue) {
+    DEBUG_FUNCTION_LINE("gEnabled new value: %d", newValue);
+    gEnabled = (ImageOutputFormatEnum) newValue;
+
+    WUPS_StoreBool(nullptr, ENABLED_CONFIG_STRING, gEnabled);
+}
+
+WUPS_GET_CONFIG() {
+    // We open the storage, so we can persist the configuration the user did.
+    if (WUPS_OpenStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to open storage");
+        return 0;
+    }
+
+    WUPSConfigHandle config;
+    WUPSConfig_CreateHandled(&config, "Screenshot plugin");
+
+    WUPSConfigCategoryHandle setting;
+    WUPSConfig_AddCategoryByNameHandled(config, "Settings", &setting);
+
+
+    WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, ENABLED_CONFIG_STRING, "Enabled", gEnabled, &enabledChanged);
+
+    ConfigItemMultipleValuesPair fileFormat[3];
+    fileFormat[0].value     = IMAGE_OUTPUT_FORMAT_JPEG;
+    fileFormat[0].valueName = (char *) "JPEG";
+
+    fileFormat[1].value     = IMAGE_OUTPUT_FORMAT_PNG;
+    fileFormat[1].valueName = (char *) "PNG";
+
+    fileFormat[2].value     = IMAGE_OUTPUT_FORMAT_BMP;
+    fileFormat[2].valueName = (char *) "BMP";
+
+    uint32_t defaultIndex = 0;
+    uint32_t curIndex     = 0;
+    for (auto &cur : fileFormat) {
+        if (cur.value == gOutputFormat) {
+            defaultIndex = curIndex;
+            break;
+        }
+        curIndex++;
+    }
+
+    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, FORMAT_CONFIG_STRING, "Output format", defaultIndex, fileFormat,
+                                                      sizeof(fileFormat) / sizeof(fileFormat[0]), &formatChanged);
+
+
+    ConfigItemMultipleValuesPair source[3];
+    source[0].value     = IMAGE_SOURCE_TV_AND_DRC;
+    source[0].valueName = (char *) "TV & Gamepad";
+
+    source[1].value     = IMAGE_SOURCE_TV;
+    source[1].valueName = (char *) "TV only";
+
+    source[2].value     = IMAGE_SOURCE_DRC;
+    source[2].valueName = (char *) "Gamepad only";
+
+    defaultIndex = 0;
+    curIndex     = 0;
+    for (auto &cur : source) {
+        if (cur.value == gImageSource) {
+            defaultIndex = curIndex;
+            break;
+        }
+        curIndex++;
+    }
+
+    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, SCREEN_CONFIG_STRING, "Screen", defaultIndex, source,
+                                                      sizeof(source) / sizeof(source[0]), &imageSourceChanged);
+
+
+    WUPSConfigItemIntegerRange_AddToCategoryHandled(config, setting, QUALITY_CONFIG_STRING, "JPEG quality", gQuality, 10, 100, &qualityChanged);
+
+    return config;
+}
+
+WUPS_CONFIG_CLOSED() {
+    // Save all changes
+    if (WUPS_CloseStorage() != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to close storage");
+    }
 }
 
 // Called whenever an application was started.
-ON_APPLICATION_START(my_args) {
-    socket_lib_init();
-    log_init();
-
-    gAppStatus = WUPS_APP_STATUS_FOREGROUND;
-
-    log_init();
-}
-
-ON_APP_STATUS_CHANGED(status) {
-    gAppStatus = status;
-}
-
-
-#define FPS 60
-uint32_t SplashScreen(int32_t time,int32_t combotime) {
-    uint32_t result = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
-
-    // Init screen
-    OSScreenInit();
-
-    uint32_t screen_buf0_size = OSScreenGetBufferSizeEx(SCREEN_TV);
-    uint32_t screen_buf1_size = OSScreenGetBufferSizeEx(SCREEN_DRC);
-
-    uint32_t * screenbuffer0 = (uint32_t*)memalign(0x100, screen_buf0_size);
-    uint32_t * screenbuffer1 = (uint32_t*)memalign(0x100, screen_buf1_size);
-
-    if(screenbuffer0 == NULL || screenbuffer1 == NULL) {
-        if(screenbuffer0 != NULL) {
-            free(screenbuffer0);
+ON_APPLICATION_START() {
+    initLogging();
+    ACPInitialize();
+    auto *metaXml = (ACPMetaXml *) memalign(0x40, sizeof(ACPMetaXml));
+    if (ACPGetTitleMetaXml(OSGetTitleID(), metaXml) == ACP_RESULT_SUCCESS) {
+        gShortNameEn             = metaXml->shortname_en;
+        std::string illegalChars = "\\/:?\"<>|@=;`_^][";
+        for (auto it = gShortNameEn.begin(); it < gShortNameEn.end(); ++it) {
+            if (*it < '0' || *it > 'z') {
+                *it = ' ';
+            }
         }
-        if(screenbuffer1 != NULL) {
-            free(screenbuffer1);
+        for (auto it = gShortNameEn.begin(); it < gShortNameEn.end(); ++it) {
+            bool found = illegalChars.find(*it) != std::string::npos;
+            if (found) {
+                *it = ' ';
+            }
         }
-        return result;
-    }
-
-    OSScreenSetBufferEx(SCREEN_TV, (void *)screenbuffer0);
-    OSScreenSetBufferEx(SCREEN_DRC, (void *)screenbuffer1);
-
-    OSScreenEnableEx(SCREEN_TV, 1);
-    OSScreenEnableEx(SCREEN_DRC, 1);
-
-    // Clear screens
-    OSScreenClearBufferEx(SCREEN_TV, 0);
-    OSScreenClearBufferEx(SCREEN_DRC, 0);
-
-    // Flip buffers
-    OSScreenFlipBuffersEx(SCREEN_TV);
-    OSScreenFlipBuffersEx(SCREEN_DRC);
-
-    OSScreenClearBufferEx(SCREEN_TV, 0);
-    OSScreenClearBufferEx(SCREEN_DRC, 0);
-
-    std::vector<std::string> strings;
-    strings.push_back("Screenshot tool 0.1 - by Maschell.");
-    strings.push_back("");
-    strings.push_back("");
-    strings.push_back("Press the combo you want to use for making screenshots now");
-    strings.push_back("for 2 seconds.");
-    strings.push_back(" ");
-    strings.push_back("Otherwise the default combo (L+R+ZR+ZL button) will be used");
-    strings.push_back("in 10 seconds.");
-    strings.push_back(" ");
-    strings.push_back("Press the TV buttons to exit with the default combo.");
-
-    uint8_t pos = 0;
-    for (std::vector<std::string>::iterator it = strings.begin() ; it != strings.end(); ++it) {
-        OSScreenPutFontEx(SCREEN_TV, 0, pos, (*it).c_str());
-        OSScreenPutFontEx(SCREEN_DRC, 0, pos, (*it).c_str());
-        pos++;
-    }
-
-    OSScreenFlipBuffersEx(SCREEN_TV);
-    OSScreenFlipBuffersEx(SCREEN_DRC);
-
-    int32_t tickswait = time * FPS * 16;
-
-    int32_t sleepingtime = 16;
-    int32_t times = tickswait/16;
-    int32_t i=0;
-
-    VPADStatus vpad_data;
-    VPADReadError error;
-    uint32_t last = 0xFFFFFFFF;
-    int32_t timer = 0;
-    while(i<times) {
-        VPADRead(VPAD_CHAN_0, &vpad_data, 1, &error);
-        if(vpad_data.trigger == VPAD_BUTTON_TV) {
-            break;
+        uint32_t length = gShortNameEn.length();
+        for (uint32_t i = 1; i < length; ++i) {
+            if (gShortNameEn[i - 1] == ' ' && gShortNameEn[i] == ' ') {
+                gShortNameEn.erase(i, 1);
+                i--;
+                length--;
+            }
         }
-        if(last == vpad_data.hold && last != 0) {
-            timer++;
+        if (gShortNameEn.size() == 1 && gShortNameEn[0] == ' ') {
+            gShortNameEn.clear();
         } else {
-            last = vpad_data.hold;
-            timer = 0;
+            DEBUG_FUNCTION_LINE("Detected name as \"%s\"", gShortNameEn.c_str());
         }
-        if(timer >= combotime*FPS) {
-            result = vpad_data.hold;
-            break;
-        }
-        i++;
-        OSSleepTicks(OSMicrosecondsToTicks(sleepingtime*1000));
+    } else {
+        gShortNameEn.clear();
     }
+}
 
-    if(screenbuffer0 != NULL) {
-        free(screenbuffer0);
-    }
-    if(screenbuffer1 != NULL) {
-        free(screenbuffer1);
-    }
-
-    return result;
+ON_APPLICATION_REQUESTS_EXIT() {
+    deinitLogging();
 }
