@@ -1,3 +1,10 @@
 #include "retain_vars.hpp"
-wups_loader_app_status_t gAppStatus __attribute__((section(".data"))) = WUPS_APP_STATUS_UNKNOWN;
-uint32_t gButtonCombo __attribute__((section(".data"))) = 0;
+#include <string>
+GX2SurfaceFormat gTVSurfaceFormat   = GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8;
+GX2SurfaceFormat gDRCSurfaceFormat  = GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8;
+ImageSourceEnum gImageSource        = IMAGE_SOURCE_TV_AND_DRC;
+bool gEnabled                       = true;
+uint32_t gButtonCombo               = 0;
+int32_t gQuality                    = 90;
+ImageOutputFormatEnum gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
+std::string gShortNameEn;

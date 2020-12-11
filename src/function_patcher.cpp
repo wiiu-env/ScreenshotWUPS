@@ -1,61 +1,99 @@
-#include <wups.h>
-#include <utils/logger.h>
-#include <vpad/input.h>
-#include <gx2/surface.h>
-#include <coreinit/time.h>
-#include <utils/StringTools.h>
-#include <fs/FSUtils.h>
 #include "common.h"
-#include "screenshot_utils.h"
+#include "fs/FSUtils.h"
 #include "retain_vars.hpp"
+#include "screenshot_utils.h"
+#include "utils/StringTools.h"
+#include "utils/logger.h"
+#include <coreinit/time.h>
+#include <coreinit/title.h>
+#include <gx2/surface.h>
+#include <vpad/input.h>
+#include <wups.h>
 
-static bool takeScreenshotTV __attribute__((section(".data"))) = false;
-static bool takeScreenshotDRC __attribute__((section(".data"))) = false;
-static uint8_t screenshotCooldown __attribute__((section(".data"))) = 0;
-static uint32_t counter __attribute__((section(".data"))) = 0;
+static bool takeScreenshotTV      = false;
+static bool takeScreenshotDRC     = false;
+static uint8_t screenshotCoolDown = 0;
 
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
-    int32_t result = real_VPADRead(chan, buffer, buffer_size, error);
+    VPADReadError real_error;
+    int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
 
-    if(result > 0 && *error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCooldown == 0 && OSIsHomeButtonMenuEnabled()) {
-        counter++;
-        takeScreenshotTV = true;
-        takeScreenshotDRC = true;
+    if (gEnabled) {
+        if (result > 0 && real_error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCoolDown == 0 && OSIsHomeButtonMenuEnabled()) {
+            takeScreenshotTV  = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV;
+            takeScreenshotDRC = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC;
 
-        screenshotCooldown = 0x3C;
+            screenshotCoolDown = 60;
+        }
+        if (screenshotCoolDown > 0) {
+            screenshotCoolDown--;
+        }
     }
-    if(screenshotCooldown > 0) {
-        screenshotCooldown--;
-    }
 
+    if (error) {
+        *error = real_error;
+    }
     return result;
 }
 
-DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, int32_t scan_target) {
-    if((takeScreenshotTV || takeScreenshotDRC) && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
+DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
+    if ((takeScreenshotTV || takeScreenshotDRC)) {
         OSCalendarTime output;
         OSTicksToCalendarTime(OSGetTime(), &output);
-        char buffer[255] = {0};
-        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/",WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon,output.tm_mday);
-
-        FSUtils::CreateSubfolder(buffer);
-
-        snprintf(buffer,254,"%s%04ld-%02ld-%02ld/%04ld-%02ld-%02ld_%02ld.%02ld.%02ld_",
-                 WIIU_SCREENSHOT_PATH,output.tm_year,output.tm_mon,output.tm_mday,output.tm_year,output.tm_mon,output.tm_mday,output.tm_hour,output.tm_min,output.tm_sec);
-
-        if(scan_target == 1 && colorBuffer != NULL && takeScreenshotTV && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
-            DEBUG_FUNCTION_LINE("Lets take a screenshot from TV. Source format: %d \n",colorBuffer->surface.format);
-            takeScreenshot((GX2ColorBuffer *)colorBuffer, StringTools::strfmt("%sTV.jpg",buffer).c_str());
-            takeScreenshotTV = false;
+        std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
+        if (!gShortNameEn.empty()) {
+            buffer += string_format(" (%s)", gShortNameEn.c_str());
         }
-        if(scan_target == 4 && colorBuffer != NULL && takeScreenshotDRC && gAppStatus == WUPS_APP_STATUS_FOREGROUND) {
-            DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC. Source format: %d \n",colorBuffer->surface.format);
-            takeScreenshot((GX2ColorBuffer *)colorBuffer, StringTools::strfmt("%sDRC.jpg",buffer).c_str());
+        buffer += string_format("/%04d-%02d-%02d/", output.tm_year, output.tm_mon + 1, output.tm_mday);
+
+        bool dirExists = true;
+        auto dir       = opendir(buffer.c_str());
+        if (dir) {
+            closedir(dir);
+        } else {
+            if (!FSUtils::CreateSubfolder(buffer.c_str())) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to create dir: %s", buffer.c_str());
+                dirExists = false;
+            }
+        }
+
+        if (dirExists) {
+            buffer = string_format("%s%04d-%02d-%02d_%02d.%02d.%02d_",
+                                   buffer.c_str(), output.tm_year, output.tm_mon + 1,
+                                   output.tm_mday, output.tm_hour, output.tm_min, output.tm_sec);
+
+            if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && takeScreenshotTV) {
+                DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
+                takeScreenshot((GX2ColorBuffer *) colorBuffer, buffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality);
+                takeScreenshotTV = false;
+            } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && takeScreenshotDRC) {
+                DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
+                takeScreenshot((GX2ColorBuffer *) colorBuffer, buffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality);
+                takeScreenshotDRC = false;
+            }
+        } else {
+            takeScreenshotTV  = false;
             takeScreenshotDRC = false;
         }
     }
-    real_GX2CopyColorBufferToScanBuffer(colorBuffer,scan_target);
+    real_GX2CopyColorBufferToScanBuffer(colorBuffer, scan_target);
 }
 
-WUPS_MUST_REPLACE(VPADRead,                         WUPS_LOADER_LIBRARY_VPAD,   VPADRead);
-WUPS_MUST_REPLACE(GX2CopyColorBufferToScanBuffer,   WUPS_LOADER_LIBRARY_GX2,    GX2CopyColorBufferToScanBuffer);
+DECL_FUNCTION(void, GX2SetTVBuffer, void *buffer, uint32_t buffer_size, int32_t tv_render_mode, GX2SurfaceFormat surface_format, GX2BufferingMode buffering_mode) {
+    DEBUG_FUNCTION_LINE_VERBOSE("Set TV Buffer format to 0x%08X", surface_format);
+    gTVSurfaceFormat = surface_format;
+
+    return real_GX2SetTVBuffer(buffer, buffer_size, tv_render_mode, surface_format, buffering_mode);
+}
+
+DECL_FUNCTION(void, GX2SetDRCBuffer, void *buffer, uint32_t buffer_size, uint32_t drc_mode, GX2SurfaceFormat surface_format, GX2BufferingMode buffering_mode) {
+    DEBUG_FUNCTION_LINE_VERBOSE("Set DRC Buffer format to 0x%08X", surface_format);
+    gDRCSurfaceFormat = surface_format;
+
+    return real_GX2SetDRCBuffer(buffer, buffer_size, drc_mode, surface_format, buffering_mode);
+}
+
+WUPS_MUST_REPLACE(VPADRead, WUPS_LOADER_LIBRARY_VPAD, VPADRead);
+WUPS_MUST_REPLACE(GX2CopyColorBufferToScanBuffer, WUPS_LOADER_LIBRARY_GX2, GX2CopyColorBufferToScanBuffer);
+WUPS_MUST_REPLACE(GX2SetTVBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetTVBuffer);
+WUPS_MUST_REPLACE(GX2SetDRCBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetDRCBuffer);

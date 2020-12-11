@@ -1,39 +1,52 @@
-# Screenshot tool [![Build Status](https://api.travis-ci.org/Maschell/ScreenshotWUPS.svg?branch=master)](https://travis-ci.org/Maschell/ScreenshotWUPS)
+# Screenshot Plugin
 
-This is just a simple plugin that takes screenshot of the TV and DRC screen. The screenshot will saved on the sd card in the folder "sd:/wiiu/screenshots/"
+This is just a simple plugin that takes screenshot of the TV and DRC screen. 
+The screenshot will be saved on the SD card in the folder `sd:/wiiu/screenshots`
 
-## Wii U Plugin System
-This is a plugin for the [Wii U Plugin System (WUPS)](https://github.com/Maschell/WiiUPluginSystem/). To be able to use this plugin you have to place the resulting `.mod` file into the following folder:
+## Installation
+(`[ENVIRONMENT]` is a placeholder for the actual environment name.)
 
-```
-sd:/wiiu/plugins
-```
-When the file is placed on the SDCard you can load it with [plugin loader](https://github.com/Maschell/WiiUPluginSystem/).
+1. Copy the file `screenshot.wps` into `sd:/wiiu/environments/[ENVIRONMENT]/plugins`.  
+2. Requires the [WiiUPluginLoaderBackend](https://github.com/wiiu-env/WiiUPluginLoaderBackend) in `sd:/wiiu/environments/[ENVIRONMENT]/modules`.
+3. Requires the [MemoryMappingModule](https://github.com/wiiu-env/MemoryMappingModule) in `sd:/wiiu/environments/[ENVIRONMENT]/modules`.
+
+## Usage
+Press ZL + L + ZR + R on the gamepad to take a screenshot.
+
+Via the plugin config menu (press L, DPAD Down and Minus on the gamepad) you can configure the plugin. The available options are the following:
+- **Settings**: 
+  - Enabled: (Default is true)
+    - Enables or disables the screenshot plugin.
+  - Output format: (Default is JPEG)
+    - Determines which file is used. Currently saving screens as .jpg, .png and .bmp is supported.
+  - Screen: (Default is TV and Gamepad)
+    - Determines from which screen a screenshot should be taken. Possible options: TV & Gamepad, TV only, Gamepad only.
+  - JPEG quality: (Default is 90)
+      - Determines the quality when saving as JPEG. Lowest possible quality is 10, highest 100.
 
 ## Building
 
 For building you need: 
-- [wups](https://github.com/Maschell/WiiUPluginSystem)
+- [wups](https://github.com/wiiu-env/WiiUPluginSystem)
 - [wut](https://github.com/decaf-emu/wut)
-- [libutilswut](https://github.com/Maschell/libutils/tree/wut) (WUT version) for common functions.
+- [libmappedmemory](https://github.com/wiiu-env/libmappedmemory)
+- PPC versions of zlib, libgd, libpng, libjpeg (install via `pacman -Syu ppc-zlib ppc-libgd ppc-libpng ppc-libjpeg-turbo`)
 
-Install them (in this order) according to their README's. Don't forget the dependencies of the libs itself.
+## Building using the Dockerfile
 
-Other external libraries are already located in the `libs` folder.
-
-- libjpeg
-- libturbojpeg
-
-### Building using the Dockerfile
 It's possible to use a docker image for building. This way you don't need anything installed on your host system.
 
 ```
-# Build docker image (only needed once
-docker build . -t screenshot-builder
+# Build docker image (only needed once)
+docker build . -t screenshot-plugin-builder
 
 # make 
-docker run -it --rm -v ${PWD}:/project screenshot-builder make
+docker run -it --rm -v ${PWD}:/project screenshot-plugin-builder make
 
 # make clean
-docker run -it --rm -v ${PWD}:/project screenshot-builder make clean
+docker run -it --rm -v ${PWD}:/project screenshot-plugin-builder make clean
 ```
+
+## Format the code via docker
+
+`docker run --rm -v ${PWD}:/src wiiuenv/clang-format:13.0.0-2 -r ./src -i`
