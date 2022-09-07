@@ -1,15 +1,15 @@
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <strings.h>
 #include <fs/CFile.hpp>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
 
 CFile::CFile() {
-    iFd = -1;
+    iFd      = -1;
     mem_file = NULL;
     filesize = 0;
-    pos = 0;
+    pos      = 0;
 }
 
 CFile::CFile(const std::string &filepath, eOpenTypes mode) {
@@ -35,7 +35,7 @@ int32_t CFile::open(const std::string &filepath, eOpenTypes mode) {
 
     switch (mode) {
         default:
-        case ReadOnly:   // file must exist
+        case ReadOnly: // file must exist
             openMode = O_RDONLY;
             break;
         case WriteOnly: // file will be created / zerod
@@ -77,10 +77,10 @@ void CFile::close() {
     if (iFd >= 0)
         ::close(iFd);
 
-    iFd = -1;
+    iFd      = -1;
     mem_file = NULL;
     filesize = 0;
-    pos = 0;
+    pos      = 0;
 }
 
 int32_t CFile::read(uint8_t *ptr, size_t size) {
@@ -127,7 +127,7 @@ int32_t CFile::write(const uint8_t *ptr, size_t size) {
 }
 
 int32_t CFile::seek(long int offset, int32_t origin) {
-    int32_t ret = 0;
+    int32_t ret    = 0;
     int64_t newPos = pos;
 
     if (origin == SEEK_SET) {
@@ -158,7 +158,7 @@ int32_t CFile::seek(long int offset, int32_t origin) {
 
 int32_t CFile::fwrite(const char *format, ...) {
     char tmp[512];
-    tmp[0] = 0;
+    tmp[0]         = 0;
     int32_t result = -1;
 
     va_list va;
@@ -171,5 +171,3 @@ int32_t CFile::fwrite(const char *format, ...) {
 
     return result;
 }
-
-

@@ -6,10 +6,10 @@
 
 class JpegInformation {
 public:
-    JpegInformation(tjhandle handle, uint8_t* jpegBuf, uint64_t jpegSize);
+    JpegInformation(tjhandle handle, uint8_t *jpegBuf, uint64_t jpegSize);
     virtual ~JpegInformation();
 
-    uint8_t * getBuffer() {
+    uint8_t *getBuffer() {
         return buffer;
     };
     uint64_t getSize() {
@@ -17,10 +17,9 @@ public:
     };
 
 private:
-    uint8_t* buffer;
+    uint8_t *buffer;
     uint64_t size;
     tjhandle handle;
-
 };
 
 #endif // JPEGINFORMATION_H

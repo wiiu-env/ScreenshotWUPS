@@ -23,17 +23,16 @@
  *
  * for WiiXplorer 2010
  ***************************************************************************/
-#include <vector>
-#include <string>
-#include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <wchar.h>
+#include <string.h>
+#include <string>
 #include <strings.h>
-#include <wut_types.h>
-#include <stdio.h>
 #include <utils/StringTools.h>
+#include <vector>
+#include <wchar.h>
+#include <wut_types.h>
 
 
 BOOL StringTools::EndsWith(const std::string &a, const std::string &b) {
@@ -85,7 +84,7 @@ const wchar_t *StringTools::wfmt(const char *format, ...) {
     static char tmp[512];
     static wchar_t strWChar[512];
     strWChar[0] = 0;
-    tmp[0] = 0;
+    tmp[0]      = 0;
 
     if (!format)
         return (const wchar_t *) strWChar;
@@ -98,7 +97,7 @@ const wchar_t *StringTools::wfmt(const char *format, ...) {
     if ((vsprintf(tmp, format, va) >= 0)) {
         int bt;
         int32_t strlength = strlen(tmp);
-        bt = mbstowcs(strWChar, tmp, (strlength < 512) ? strlength : 512);
+        bt                = mbstowcs(strWChar, tmp, (strlength < 512) ? strlength : 512);
 
         if (bt > 0) {
             strWChar[bt] = 0;
@@ -112,13 +111,13 @@ const wchar_t *StringTools::wfmt(const char *format, ...) {
 
 int32_t StringTools::strprintf(std::string &str, const char *format, ...) {
     static char tmp[512];
-    tmp[0] = 0;
+    tmp[0]         = 0;
     int32_t result = 0;
 
     va_list va;
     va_start(va, format);
     if ((vsprintf(tmp, format, va) >= 0)) {
-        str = tmp;
+        str    = tmp;
         result = str.size();
     }
     va_end(va);
@@ -215,7 +214,7 @@ const char *StringTools::FullpathToFilename(const char *path) {
     if (!path)
         return path;
 
-    const char *ptr = path;
+    const char *ptr      = path;
     const char *Filename = ptr;
 
     while (*ptr != '\0') {
@@ -244,13 +243,13 @@ void StringTools::RemoveDoubleSlashs(std::string &str) {
 
 // You must free the result if result is non-NULL.
 char *StringTools::str_replace(char *orig, char *rep, char *with) {
-    char *result; // the return string
-    char *ins;    // the next insert point
-    char *tmp;    // varies
-    int len_rep;  // length of rep (the string to remove)
-    int len_with; // length of with (the string to replace rep with)
+    char *result;  // the return string
+    char *ins;     // the next insert point
+    char *tmp;     // varies
+    int len_rep;   // length of rep (the string to remove)
+    int len_with;  // length of with (the string to replace rep with)
     int len_front; // distance between rep and end of last rep
-    int count;    // number of replacements
+    int count;     // number of replacements
 
     // sanity checks and initialization
     if (!orig || !rep)
@@ -279,10 +278,10 @@ char *StringTools::str_replace(char *orig, char *rep, char *with) {
     //    ins points to the next occurrence of rep in orig
     //    orig points to the remainder of orig after "end of rep"
     while (count--) {
-        ins = strstr(orig, rep);
+        ins       = strstr(orig, rep);
         len_front = ins - orig;
-        tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strcpy(tmp, with) + len_with;
+        tmp       = strncpy(tmp, orig, len_front) + len_front;
+        tmp       = strcpy(tmp, with) + len_with;
         orig += len_front + len_rep; // move to next "end of rep"
     }
     strcpy(tmp, orig);
