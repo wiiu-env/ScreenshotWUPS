@@ -1,4 +1,5 @@
 #include "retain_vars.hpp"
+#include "utils/logger.h"
 #include <coreinit/cache.h>
 #include <coreinit/screen.h>
 #include <coreinit/thread.h>
@@ -7,7 +8,6 @@
 #include <string>
 #include <vector>
 #include <vpad/input.h>
-#include <whb/log_udp.h>
 #include <wups.h>
 
 // Mandatory plugin information.
@@ -18,15 +18,15 @@ WUPS_PLUGIN_AUTHOR("Maschell");
 WUPS_PLUGIN_LICENSE("GPL");
 
 // FS Access
-WUPS_USE_WUT_CRT()
+WUPS_USE_WUT_DEVOPTAB();
 
-uint32_t SplashScreen(int32_t time, int32_t combotime);
+// uint32_t SplashScreen(int32_t time, int32_t combotime);
 
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
-    WHBLogUdpInit();
+    initLogging();
 
-    //uint32_t res = SplashScreen(10,2);
+    // uint32_t res = SplashScreen(10,2);
 
     gButtonCombo = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
     ICInvalidateRange((void *) (&gButtonCombo), 4);
@@ -34,10 +34,14 @@ INITIALIZE_PLUGIN() {
 }
 
 // Called whenever an application was started.
-ON_APPLICATION_START(my_args) {
-    WHBLogUdpInit();
+ON_APPLICATION_START() {
+    initLogging();
 }
 
+ON_APPLICATION_REQUESTS_EXIT() {
+    deinitLogging();
+}
+/*
 #define FPS 60
 uint32_t SplashScreen(int32_t time, int32_t combotime) {
     uint32_t result = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
@@ -51,11 +55,11 @@ uint32_t SplashScreen(int32_t time, int32_t combotime) {
     uint32_t *screenbuffer0 = (uint32_t *) memalign(0x100, screen_buf0_size);
     uint32_t *screenbuffer1 = (uint32_t *) memalign(0x100, screen_buf1_size);
 
-    if (screenbuffer0 == NULL || screenbuffer1 == NULL) {
-        if (screenbuffer0 != NULL) {
+    if (screenbuffer0 == nullptr || screenbuffer1 == nullptr) {
+        if (screenbuffer0 != nullptr) {
             free(screenbuffer0);
         }
-        if (screenbuffer1 != NULL) {
+        if (screenbuffer1 != nullptr) {
             free(screenbuffer1);
         }
         return result;
@@ -129,12 +133,13 @@ uint32_t SplashScreen(int32_t time, int32_t combotime) {
         OSSleepTicks(OSMicrosecondsToTicks(sleepingtime * 1000));
     }
 
-    if (screenbuffer0 != NULL) {
+    if (screenbuffer0 != nullptr) {
         free(screenbuffer0);
     }
-    if (screenbuffer1 != NULL) {
+    if (screenbuffer1 != nullptr) {
         free(screenbuffer1);
     }
 
     return result;
 }
+*/

@@ -9,7 +9,7 @@
 
 int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_t *size) {
     //! always initialze input
-    *inbuffer = NULL;
+    *inbuffer = nullptr;
     if (size)
         *size = 0;
 
@@ -20,8 +20,8 @@ int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_
     uint32_t filesize = lseek(iFd, 0, SEEK_END);
     lseek(iFd, 0, SEEK_SET);
 
-    uint8_t *buffer = (uint8_t *) malloc(filesize);
-    if (buffer == NULL) {
+    auto *buffer = (uint8_t *) malloc(filesize);
+    if (buffer == nullptr) {
         close(iFd);
         return -2;
     }
@@ -44,7 +44,7 @@ int32_t FSUtils::LoadFileToMem(const char *filepath, uint8_t **inbuffer, uint32_
 
     if (done != filesize) {
         free(buffer);
-        buffer = NULL;
+        buffer = nullptr;
         return -3;
     }
 
@@ -104,7 +104,7 @@ int32_t FSUtils::CreateSubfolder(const char *fullpath) {
         char *ptr = strrchr(parentpath, '/');
 
         if (!ptr) {
-            //!Device root directory (must be with '/')
+            //! Device root directory (must be with '/')
             strcat(parentpath, "/");
             struct stat filestat;
             if (stat(parentpath, &filestat) == 0)
@@ -129,13 +129,17 @@ int32_t FSUtils::CreateSubfolder(const char *fullpath) {
     return 1;
 }
 
-int32_t FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
+BOOL FSUtils::saveBufferToFile(const char *path, void *buffer, uint32_t size) {
     CFile file(path, CFile::WriteOnly);
     if (!file.isOpen()) {
         DEBUG_FUNCTION_LINE("Failed to open %s\n", path);
-        return 0;
+        return false;
     }
-    int32_t written = file.write((const uint8_t *) buffer, size);
+    if (file.write((const uint8_t *) buffer, size) != size) {
+        DEBUG_FUNCTION_LINE("Failed to write file %s\n", path);
+        file.close();
+        return false;
+    }
     file.close();
-    return written;
+    return true;
 }

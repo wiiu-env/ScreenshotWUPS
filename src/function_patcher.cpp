@@ -1,11 +1,11 @@
 #include "common.h"
+#include "fs/FSUtils.h"
 #include "retain_vars.hpp"
 #include "screenshot_utils.h"
+#include "utils/StringTools.h"
+#include "utils/logger.h"
 #include <coreinit/time.h>
-#include <fs/FSUtils.h>
 #include <gx2/surface.h>
-#include <utils/StringTools.h>
-#include <utils/logger.h>
 #include <vpad/input.h>
 #include <wups.h>
 
@@ -49,12 +49,12 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
 
         if (scan_target == 1 && colorBuffer != NULL && takeScreenshotTV) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from TV. Source format: %d", colorBuffer->surface.format);
-            takeScreenshot((GX2ColorBuffer *) colorBuffer, StringTools::strfmt("%sTV.jpg", buffer).c_str());
+            takeScreenshot((GX2ColorBuffer *) colorBuffer, string_format("%sTV.jpg", buffer).c_str());
             takeScreenshotTV = false;
         }
         if (scan_target == 4 && colorBuffer != NULL && takeScreenshotDRC) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC. Source format: %d", colorBuffer->surface.format);
-            takeScreenshot((GX2ColorBuffer *) colorBuffer, StringTools::strfmt("%sDRC.jpg", buffer).c_str());
+            takeScreenshot((GX2ColorBuffer *) colorBuffer, string_format("%sDRC.jpg", buffer).c_str());
             takeScreenshotDRC = false;
         }
     }

@@ -1,9 +1,8 @@
-#ifndef CFILE_HPP_
-#define CFILE_HPP_
+#pragma once
 
+#include <cstdio>
+#include <cstring>
 #include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
 #include <string>
 #include <unistd.h>
 #include <wut_types.h>
@@ -43,7 +42,7 @@ public:
 
     int32_t read(uint8_t *ptr, size_t size);
 
-    int32_t write(const uint8_t *ptr, size_t size);
+    int64_t write(const uint8_t *ptr, size_t size);
 
     int32_t fwrite(const char *format, ...);
 
@@ -67,5 +66,3 @@ protected:
     uint64_t filesize;
     uint64_t pos;
 };
-
-#endif

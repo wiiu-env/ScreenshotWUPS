@@ -1,11 +1,10 @@
 #include "screenshot_utils.h"
 
+#include "fs/FSUtils.h"
 #include <coreinit/cache.h>
-#include <fs/FSUtils.h>
 #include <gx2/event.h>
 #include <gx2/mem.h>
 #include <memory/mappedmemory.h>
-
 
 #ifdef __cplusplus
 extern "C" {

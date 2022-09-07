@@ -29,7 +29,7 @@ INCLUDES	:=	src
 #-------------------------------------------------------------------------------
 # options for code generation
 #-------------------------------------------------------------------------------
-CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
+CFLAGS	:=	-Wall -O2 -ffunction-sections \
 			$(MACHDEP)
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -D__WUPS__ 
@@ -38,6 +38,16 @@ CXXFLAGS	:= $(CFLAGS)
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) -T$(WUMS_ROOT)/share/libmappedmemory.ld $(WUPSSPECS)
+
+ifeq ($(DEBUG),1)
+CXXFLAGS += -DDEBUG -g
+CFLAGS += -DDEBUG -g
+endif
+
+ifeq ($(DEBUG),VERBOSE)
+CXXFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
+CFLAGS += -DDEBUG -DVERBOSE_DEBUG -g
+endif
 
 LIBS	:= -lwups -lwut -lturbojpeg -lmappedmemory
 
@@ -129,16 +139,6 @@ $(OFILES_SRC)	: $(HFILES_BIN)
 #-------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)
-
-#---------------------------------------------------------------------------------
-%.tga.o	%_tga.h  : %.tga
-	@echo $(notdir $<)
-	@bin2s -a 32 $< | $(AS) -o $(@)
-#---------------------------------------------------------------------------------
-%.h264.o	%_h264.h  : %.h264
-	@echo $(notdir $<)
-	@bin2s -a 32 $< | $(AS) -o $(@)
-#---------------------------------------------------------------------------------
 
 -include $(DEPENDS)
 

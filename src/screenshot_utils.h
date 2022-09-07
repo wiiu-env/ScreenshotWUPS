@@ -2,8 +2,8 @@
 #define _SCREENSHOT_UTILS_H_
 
 #include "JpegInformation.h"
+#include "utils/logger.h"
 #include <gx2/surface.h>
-#include <utils/logger.h>
 
 JpegInformation *convertToJpeg(uint8_t *sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, uint32_t format, int32_t quality);
 

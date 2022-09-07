@@ -1,13 +1,11 @@
-
-#include <fs/CFile.hpp>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "fs/CFile.hpp"
+#include <cstdarg>
+#include <cstdio>
 #include <strings.h>
 
 CFile::CFile() {
     iFd      = -1;
-    mem_file = NULL;
+    mem_file = nullptr;
     filesize = 0;
     pos      = 0;
 }
@@ -56,7 +54,6 @@ int32_t CFile::open(const std::string &filepath, eOpenTypes mode) {
     iFd = ::open(filepath.c_str(), openMode);
     if (iFd < 0)
         return iFd;
-
 
     filesize = ::lseek(iFd, 0, SEEK_END);
     ::lseek(iFd, 0, SEEK_SET);
@@ -108,7 +105,7 @@ int32_t CFile::read(uint8_t *ptr, size_t size) {
     return -1;
 }
 
-int32_t CFile::write(const uint8_t *ptr, size_t size) {
+int64_t CFile::write(const uint8_t *ptr, size_t size) {
     if (iFd >= 0) {
         size_t done = 0;
         while (done < size) {
@@ -167,7 +164,6 @@ int32_t CFile::fwrite(const char *format, ...) {
         result = this->write((uint8_t *) tmp, strlen(tmp));
     }
     va_end(va);
-
 
     return result;
 }
