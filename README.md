@@ -1,7 +1,7 @@
 # Screenshot Plugin
 
-This is just a simple plugin that takes screenshot of the TV and DRC screen. 
-The screenshot will be saved on the SD card in the folder `sd:/wiiu/screenshots`
+This is just a simple plugin that takes screenshots of the TV and GamePad screens. 
+The screenshots will be saved on the SD card in the folder `sd:/wiiu/screenshots`
 
 ## Installation
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
@@ -11,16 +11,16 @@ The screenshot will be saved on the SD card in the folder `sd:/wiiu/screenshots`
 3. Requires the [MemoryMappingModule](https://github.com/wiiu-env/MemoryMappingModule) in `sd:/wiiu/environments/[ENVIRONMENT]/modules`.
 
 ## Usage
-Press ZL + L + ZR + R on the gamepad to take a screenshot.
+Press ZL + L + ZR + R on the GamePad to take a screenshot.
 
-Via the plugin config menu (press L, DPAD Down and Minus on the gamepad) you can configure the plugin. The available options are the following:
+Via the plugin config menu (press L, DPAD Down and Minus on the GamePad, Pro Controller or Classic Controller) you can configure the plugin. The available options are the following:
 - **Settings**: 
   - Enabled: (Default is true)
     - Enables or disables the screenshot plugin.
   - Output format: (Default is JPEG)
     - Determines which file is used. Currently saving screens as .jpg, .png and .bmp is supported.
-  - Screen: (Default is TV and Gamepad)
-    - Determines from which screen a screenshot should be taken. Possible options: TV & Gamepad, TV only, Gamepad only.
+  - Screen: (Default is TV and GamePad)
+    - Determines from which screen a screenshot should be taken. Possible options: TV & GamePad, TV only, GamePad only.
   - JPEG quality: (Default is 90)
       - Determines the quality when saving as JPEG. Lowest possible quality is 10, highest 100.
 
