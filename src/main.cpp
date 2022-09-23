@@ -178,13 +178,13 @@ WUPS_GET_CONFIG() {
 
     ConfigItemMultipleValuesPair source[3];
     source[0].value     = IMAGE_SOURCE_TV_AND_DRC;
-    source[0].valueName = (char *) "TV & Gamepad";
+    source[0].valueName = (char *) "TV & GamePad";
 
     source[1].value     = IMAGE_SOURCE_TV;
     source[1].valueName = (char *) "TV only";
 
     source[2].value     = IMAGE_SOURCE_DRC;
-    source[2].valueName = (char *) "Gamepad only";
+    source[2].valueName = (char *) "GamePad only";
 
     defaultIndex = 0;
     curIndex     = 0;
