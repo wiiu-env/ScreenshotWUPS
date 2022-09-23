@@ -17,10 +17,10 @@ Via the plugin config menu (press L, DPAD Down and Minus on the GamePad, Pro Con
 - **Settings**: 
   - Enabled: (Default is true)
     - Enables or disables the screenshot plugin.
-  - Output format: (Default is JPEG)
-    - Determines which file is used. Currently saving screens as .jpg, .png and .bmp is supported.
   - Screen: (Default is TV and GamePad)
     - Determines from which screen a screenshot should be taken. Possible options: TV & GamePad, TV only, GamePad only.
+  - Output format: (Default is JPEG)
+    - Determines which file is used. Currently saving screens as .jpg, .png and .bmp is supported.
   - JPEG quality: (Default is 90)
       - Determines the quality when saving as JPEG. Lowest possible quality is 10, highest 100.
 
