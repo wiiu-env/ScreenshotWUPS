@@ -152,29 +152,6 @@ WUPS_GET_CONFIG() {
 
     WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, ENABLED_CONFIG_STRING, "Enabled", gEnabled, &enabledChanged);
 
-    ConfigItemMultipleValuesPair fileFormat[3];
-    fileFormat[0].value     = IMAGE_OUTPUT_FORMAT_JPEG;
-    fileFormat[0].valueName = (char *) "JPEG";
-
-    fileFormat[1].value     = IMAGE_OUTPUT_FORMAT_PNG;
-    fileFormat[1].valueName = (char *) "PNG";
-
-    fileFormat[2].value     = IMAGE_OUTPUT_FORMAT_BMP;
-    fileFormat[2].valueName = (char *) "BMP";
-
-    uint32_t defaultIndex = 0;
-    uint32_t curIndex     = 0;
-    for (auto &cur : fileFormat) {
-        if (cur.value == gOutputFormat) {
-            defaultIndex = curIndex;
-            break;
-        }
-        curIndex++;
-    }
-
-    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, FORMAT_CONFIG_STRING, "Output format", defaultIndex, fileFormat,
-                                                      sizeof(fileFormat) / sizeof(fileFormat[0]), &formatChanged);
-
 
     ConfigItemMultipleValuesPair source[3];
     source[0].value     = IMAGE_SOURCE_TV_AND_DRC;
@@ -186,8 +163,8 @@ WUPS_GET_CONFIG() {
     source[2].value     = IMAGE_SOURCE_DRC;
     source[2].valueName = (char *) "GamePad only";
 
-    defaultIndex = 0;
-    curIndex     = 0;
+    uint32_t defaultIndex = 0;
+    uint32_t curIndex     = 0;
     for (auto &cur : source) {
         if (cur.value == gImageSource) {
             defaultIndex = curIndex;
@@ -198,6 +175,29 @@ WUPS_GET_CONFIG() {
 
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, SCREEN_CONFIG_STRING, "Screen", defaultIndex, source,
                                                       sizeof(source) / sizeof(source[0]), &imageSourceChanged);
+
+    ConfigItemMultipleValuesPair fileFormat[3];
+    fileFormat[0].value     = IMAGE_OUTPUT_FORMAT_JPEG;
+    fileFormat[0].valueName = (char *) "JPEG";
+
+    fileFormat[1].value     = IMAGE_OUTPUT_FORMAT_PNG;
+    fileFormat[1].valueName = (char *) "PNG";
+
+    fileFormat[2].value     = IMAGE_OUTPUT_FORMAT_BMP;
+    fileFormat[2].valueName = (char *) "BMP";
+
+    defaultIndex = 0;
+    curIndex     = 0;
+    for (auto &cur : fileFormat) {
+        if (cur.value == gOutputFormat) {
+            defaultIndex = curIndex;
+            break;
+        }
+        curIndex++;
+    }
+
+    WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, FORMAT_CONFIG_STRING, "Output format", defaultIndex, fileFormat,
+                                                      sizeof(fileFormat) / sizeof(fileFormat[0]), &formatChanged);
 
 
     WUPSConfigItemIntegerRange_AddToCategoryHandled(config, setting, QUALITY_CONFIG_STRING, "JPEG quality", gQuality, 10, 100, &qualityChanged);
