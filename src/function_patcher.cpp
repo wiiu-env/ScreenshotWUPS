@@ -71,8 +71,11 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
                 takeScreenshot((GX2ColorBuffer *) colorBuffer, buffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality);
                 takeScreenshotDRC = false;
             }
-        } else {
-            takeScreenshotTV  = false;
+        }
+
+        if (scan_target == GX2_SCAN_TARGET_TV) {
+            takeScreenshotTV = false;
+        } else if (scan_target == GX2_SCAN_TARGET_DRC) {
             takeScreenshotDRC = false;
         }
     }
