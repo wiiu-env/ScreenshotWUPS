@@ -11,7 +11,7 @@ The screenshots will be saved on the SD card in the folder `sd:/wiiu/screenshots
 3. Requires the [MemoryMappingModule](https://github.com/wiiu-env/MemoryMappingModule) in `sd:/wiiu/environments/[ENVIRONMENT]/modules`.
 
 ## Usage
-Press a button combo (default is L + R + ZL + ZR) on the GamePad to take a screenshot.
+Press a button combo (default is L + R + ZL + ZR) on the GamePad, Pro Controller or Classic Controller to take a screenshot.
 
 Via the plugin config menu (press L, DPAD Down and Minus on the GamePad, Pro Controller or Classic Controller) you can configure the plugin. The available options are the following:
 - **Settings**: 

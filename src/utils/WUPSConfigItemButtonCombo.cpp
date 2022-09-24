@@ -1,4 +1,5 @@
 #include "WUPSConfigItemButtonCombo.h"
+#include "utils/input.h"
 #include <coreinit/debug.h>
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
@@ -149,6 +150,9 @@ void checkForHold(ConfigItemButtonCombo *item) {
                 VPAD_BUTTON_ZL | VPAD_BUTTON_ZR | VPAD_BUTTON_UP | VPAD_BUTTON_DOWN | VPAD_BUTTON_LEFT | VPAD_BUTTON_RIGHT |
                 VPAD_BUTTON_STICK_L | VPAD_BUTTON_STICK_R | VPAD_BUTTON_PLUS | VPAD_BUTTON_MINUS | VPAD_BUTTON_TV;
 
+    KPADStatus kpad_data{};
+    KPADError kpad_error;
+
     while (true) {
         uint32_t buttonsHold     = 0;
         VPADReadError vpad_error = VPAD_READ_UNINITIALIZED;
@@ -156,6 +160,19 @@ void checkForHold(ConfigItemButtonCombo *item) {
         VPADRead(VPAD_CHAN_0, &vpad_data, 1, &vpad_error);
         if (vpad_error == VPAD_READ_SUCCESS) {
             buttonsHold = vpad_data.hold;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            memset(&kpad_data, 0, sizeof(kpad_data));
+            if (KPADReadEx((KPADChan) i, &kpad_data, 1, &kpad_error) > 0) {
+                if (kpad_error == KPAD_ERROR_OK && kpad_data.extensionType != 0xFF) {
+                    if (kpad_data.extensionType == WPAD_EXT_CORE || kpad_data.extensionType == WPAD_EXT_NUNCHUK) {
+                        buttonsHold |= remapWiiMoteButtons(kpad_data.hold);
+                    } else {
+                        buttonsHold |= remapClassicButtons(kpad_data.classic.hold);
+                    }
+                }
+            }
         }
 
         buttonsHold &= mask;
