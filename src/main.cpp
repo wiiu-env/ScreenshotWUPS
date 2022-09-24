@@ -94,46 +94,55 @@ INITIALIZE_PLUGIN() {
     }
 }
 
-void formatChanged(ConfigItemMultipleValues *item, uint32_t newValue) {
-    DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configID, newValue);
-    gOutputFormat = (ImageOutputFormatEnum) newValue;
+void multipleValueItemCallback(ConfigItemMultipleValues *item, uint32_t newValue) {
+    if (item && item->configId) {
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        if (std::string_view(item->configId) == FORMAT_CONFIG_STRING) {
+            gOutputFormat = (ImageOutputFormatEnum) newValue;
 
-    if (gOutputFormat >= 3) {
-        gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
+            if (gOutputFormat >= 3) {
+                gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
+            }
+
+            WUPS_StoreInt(nullptr, item->configId, (int32_t) newValue);
+        } else if (std::string_view(item->configId) == SCREEN_CONFIG_STRING) {
+            gImageSource = (ImageSourceEnum) newValue;
+
+            if (gImageSource >= 3) {
+                gImageSource = IMAGE_SOURCE_TV_AND_DRC;
+            }
+
+            WUPS_StoreInt(nullptr, item->configId, (int32_t) newValue);
+        }
     }
-
-    WUPS_StoreInt(nullptr, item->configID, (int32_t) newValue);
 }
 
-void imageSourceChanged(ConfigItemMultipleValues *item, uint32_t newValue) {
-    DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configID, newValue);
-    gImageSource = (ImageSourceEnum) newValue;
+void integerRangeItemCallback(ConfigItemIntegerRange *item, int32_t newValue) {
+    if (item && item->configId) {
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        if (std::string_view(item->configId) == QUALITY_CONFIG_STRING) {
+            gQuality = (ImageOutputFormatEnum) newValue;
 
-    if (gImageSource >= 3) {
-        gImageSource = IMAGE_SOURCE_TV_AND_DRC;
+            if (gQuality < 10) {
+                gQuality = 10;
+            } else if (gQuality > 100) {
+                gQuality = 100;
+            }
+
+            WUPS_StoreInt(nullptr, item->configId, (int32_t) gQuality);
+        }
     }
-
-    WUPS_StoreInt(nullptr, item->configID, (int32_t) newValue);
 }
 
-void qualityChanged(ConfigItemIntegerRange *item, int32_t newValue) {
-    DEBUG_FUNCTION_LINE("New quality: %d", newValue);
-    gQuality = (ImageOutputFormatEnum) newValue;
+void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
+    if (item && item->configId) {
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        if (std::string_view(item->configId) == ENABLED_CONFIG_STRING) {
+            gEnabled = (ImageOutputFormatEnum) newValue;
 
-    if (gQuality < 10) {
-        gQuality = 10;
-    } else if (gQuality > 100) {
-        gQuality = 100;
+            WUPS_StoreBool(nullptr, item->configId, gEnabled);
+        }
     }
-
-    WUPS_StoreInt(nullptr, QUALITY_CONFIG_STRING, (int32_t) gQuality);
-}
-
-void enabledChanged(ConfigItemBoolean *item, bool newValue) {
-    DEBUG_FUNCTION_LINE("gEnabled new value: %d", newValue);
-    gEnabled = (ImageOutputFormatEnum) newValue;
-
-    WUPS_StoreBool(nullptr, ENABLED_CONFIG_STRING, gEnabled);
 }
 
 WUPS_GET_CONFIG() {
@@ -149,9 +158,7 @@ WUPS_GET_CONFIG() {
     WUPSConfigCategoryHandle setting;
     WUPSConfig_AddCategoryByNameHandled(config, "Settings", &setting);
 
-
-    WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, ENABLED_CONFIG_STRING, "Enabled", gEnabled, &enabledChanged);
-
+    WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, ENABLED_CONFIG_STRING, "Enabled", gEnabled, &boolItemCallback);
 
     ConfigItemMultipleValuesPair source[3];
     source[0].value     = IMAGE_SOURCE_TV_AND_DRC;
@@ -174,7 +181,7 @@ WUPS_GET_CONFIG() {
     }
 
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, SCREEN_CONFIG_STRING, "Screen", defaultIndex, source,
-                                                      sizeof(source) / sizeof(source[0]), &imageSourceChanged);
+                                                      sizeof(source) / sizeof(source[0]), &multipleValueItemCallback);
 
     ConfigItemMultipleValuesPair fileFormat[3];
     fileFormat[0].value     = IMAGE_OUTPUT_FORMAT_JPEG;
@@ -197,10 +204,10 @@ WUPS_GET_CONFIG() {
     }
 
     WUPSConfigItemMultipleValues_AddToCategoryHandled(config, setting, FORMAT_CONFIG_STRING, "Output format", defaultIndex, fileFormat,
-                                                      sizeof(fileFormat) / sizeof(fileFormat[0]), &formatChanged);
+                                                      sizeof(fileFormat) / sizeof(fileFormat[0]), &multipleValueItemCallback);
 
 
-    WUPSConfigItemIntegerRange_AddToCategoryHandled(config, setting, QUALITY_CONFIG_STRING, "JPEG quality", gQuality, 10, 100, &qualityChanged);
+    WUPSConfigItemIntegerRange_AddToCategoryHandled(config, setting, QUALITY_CONFIG_STRING, "JPEG quality", gQuality, 10, 100, &integerRangeItemCallback);
 
     return config;
 }
