@@ -144,6 +144,11 @@ void checkForHold(ConfigItemButtonCombo *item) {
     uint32_t holdFor         = 0;
     uint32_t holdForTarget   = item->holdDurationInMs >> 3;
     uint32_t holdAbortTarget = item->abortButtonHoldDurationInMs >> 3;
+
+    auto mask = VPAD_BUTTON_A | VPAD_BUTTON_B | VPAD_BUTTON_X | VPAD_BUTTON_Y | VPAD_BUTTON_L | VPAD_BUTTON_R |
+                VPAD_BUTTON_ZL | VPAD_BUTTON_ZR | VPAD_BUTTON_UP | VPAD_BUTTON_DOWN | VPAD_BUTTON_LEFT | VPAD_BUTTON_RIGHT |
+                VPAD_BUTTON_STICK_L | VPAD_BUTTON_STICK_R | VPAD_BUTTON_PLUS | VPAD_BUTTON_MINUS | VPAD_BUTTON_TV;
+
     while (true) {
         uint32_t buttonsHold     = 0;
         VPADReadError vpad_error = VPAD_READ_UNINITIALIZED;
@@ -152,6 +157,8 @@ void checkForHold(ConfigItemButtonCombo *item) {
         if (vpad_error == VPAD_READ_SUCCESS) {
             buttonsHold = vpad_data.hold;
         }
+
+        buttonsHold &= mask;
 
         if (buttonsHold == lastHold) {
             if (buttonsHold != 0) {
