@@ -59,6 +59,9 @@ std::string getButtonChar(VPADButtons value) {
     if (value & VPAD_BUTTON_MINUS) {
         return "\ue046";
     }
+    if (value & VPAD_BUTTON_TV) {
+        return "\ue089";
+    }
     return "?";
 }
 
@@ -111,6 +114,9 @@ std::string getComboAsString(uint32_t value) {
     }
     if (value & VPAD_BUTTON_MINUS) {
         combo += getButtonChar(VPAD_BUTTON_MINUS).append("+");
+    }
+    if (value & VPAD_BUTTON_TV) {
+        combo += getButtonChar(VPAD_BUTTON_TV).append("+");
     }
     if (combo.ends_with("+")) {
         combo.pop_back();
