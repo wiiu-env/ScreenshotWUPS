@@ -1,5 +1,6 @@
 #include "main.h"
 #include "retain_vars.hpp"
+#include "utils/WUPSConfigItemButtonCombo.h"
 #include "utils/logger.h"
 #include <coreinit/cache.h>
 #include <coreinit/title.h>
@@ -24,10 +25,11 @@ WUPS_USE_WUT_DEVOPTAB();
 
 WUPS_USE_STORAGE("screenshot_plugin");
 
-#define ENABLED_CONFIG_STRING "enabled"
-#define FORMAT_CONFIG_STRING  "format"
-#define QUALITY_CONFIG_STRING "quality"
-#define SCREEN_CONFIG_STRING  "screen"
+#define ENABLED_CONFIG_STRING      "enabled"
+#define BUTTON_COMBO_CONFIG_STRING "buttonCombo"
+#define FORMAT_CONFIG_STRING       "format"
+#define QUALITY_CONFIG_STRING      "quality"
+#define SCREEN_CONFIG_STRING       "screen"
 
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
@@ -41,7 +43,7 @@ INITIALIZE_PLUGIN() {
         DEBUG_FUNCTION_LINE_ERR("Failed to open storage %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
     } else {
         // Try to get value from storage
-        if ((storageRes = WUPS_GetInt(nullptr, ENABLED_CONFIG_STRING, reinterpret_cast<int32_t *>(&gEnabled))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+        if ((storageRes = WUPS_GetBool(nullptr, ENABLED_CONFIG_STRING, &gEnabled)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             // Add the value to the storage if it's missing.
             if (WUPS_StoreBool(nullptr, ENABLED_CONFIG_STRING, gEnabled) != WUPS_STORAGE_ERROR_SUCCESS) {
                 DEBUG_FUNCTION_LINE_ERR("Failed to store value");
@@ -52,7 +54,7 @@ INITIALIZE_PLUGIN() {
         // Try to get value from storage
         if ((storageRes = WUPS_GetInt(nullptr, FORMAT_CONFIG_STRING, reinterpret_cast<int32_t *>(&gOutputFormat))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             // Add the value to the storage if it's missing.
-            if (WUPS_StoreBool(nullptr, FORMAT_CONFIG_STRING, gOutputFormat) != WUPS_STORAGE_ERROR_SUCCESS) {
+            if (WUPS_StoreInt(nullptr, FORMAT_CONFIG_STRING, gOutputFormat) != WUPS_STORAGE_ERROR_SUCCESS) {
                 DEBUG_FUNCTION_LINE_ERR("Failed to store value");
             }
         } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -73,6 +75,16 @@ INITIALIZE_PLUGIN() {
         if ((storageRes = WUPS_GetInt(nullptr, SCREEN_CONFIG_STRING, reinterpret_cast<int32_t *>(&gImageSource))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             // Add the value to the storage if it's missing.
             if (WUPS_StoreInt(nullptr, SCREEN_CONFIG_STRING, (int32_t) gImageSource) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
+
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetInt(nullptr, BUTTON_COMBO_CONFIG_STRING, reinterpret_cast<int32_t *>(&gButtonCombo))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreInt(nullptr, BUTTON_COMBO_CONFIG_STRING, (int32_t) gButtonCombo) != WUPS_STORAGE_ERROR_SUCCESS) {
                 DEBUG_FUNCTION_LINE_ERR("Failed to store value");
             }
         } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -139,8 +151,17 @@ void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
         DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
         if (std::string_view(item->configId) == ENABLED_CONFIG_STRING) {
             gEnabled = (ImageOutputFormatEnum) newValue;
-
             WUPS_StoreBool(nullptr, item->configId, gEnabled);
+        }
+    }
+}
+
+void buttonComboItemChanged(ConfigItemButtonCombo *item, uint32_t newValue) {
+    if (item && item->configId) {
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        if (std::string_view(item->configId) == BUTTON_COMBO_CONFIG_STRING) {
+            gButtonCombo = newValue;
+            WUPS_StoreInt(nullptr, item->configId, (int32_t) gButtonCombo);
         }
     }
 }
@@ -159,6 +180,8 @@ WUPS_GET_CONFIG() {
     WUPSConfig_AddCategoryByNameHandled(config, "Settings", &setting);
 
     WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, ENABLED_CONFIG_STRING, "Enabled", gEnabled, &boolItemCallback);
+
+    WUPSConfigItemButtonCombo_AddToCategoryHandled(config, setting, BUTTON_COMBO_CONFIG_STRING, "Button combo", gButtonCombo, &buttonComboItemChanged);
 
     ConfigItemMultipleValuesPair source[3];
     source[0].value     = IMAGE_SOURCE_TV_AND_DRC;
