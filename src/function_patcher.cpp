@@ -42,17 +42,18 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
                 if (data[0].extensionType == WPAD_EXT_CORE || data[0].extensionType == WPAD_EXT_NUNCHUK) {
                     auto buttonCombo = remapVPADtoWiimote(gButtonCombo);
                     // button data is in the first 2 bytes for wiimotes
-                    if (((uint16_t *) data)[0] == buttonCombo) {
+                    if (buttonCombo != 0 && ((uint16_t *) data)[0] == buttonCombo) {
                         takeScreenshot = true;
                     }
                 } else if (data[0].extensionType == WPAD_EXT_CLASSIC) {
                     auto buttonCombo = remapVPADtoClassic(gButtonCombo);
-                    if ((((uint32_t *) data)[10] & 0xFFFF) == buttonCombo) {
+                    if (buttonCombo != 0 && (((uint32_t *) data)[10] & 0xFFFF) == buttonCombo) {
                         takeScreenshot = true;
                     }
                 } else if (data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                    auto buttonCombo = remapVPADtoClassic(gButtonCombo);
-                    if (data[0].buttons == buttonCombo) {
+                    auto buttonCombo = remapVPADtoPro(gButtonCombo);
+
+                    if (buttonCombo != 0 && data[0].buttons == buttonCombo) {
                         takeScreenshot = true;
                     }
                 }
