@@ -10,9 +10,9 @@
 #include <vpad/input.h>
 #include <wups.h>
 
-static bool takeScreenshotTV      = false;
-static bool takeScreenshotDRC     = false;
-static uint8_t screenshotCoolDown = 0;
+static bool takeScreenshotTV          = false;
+static bool takeScreenshotDRC         = false;
+static uint8_t screenshotCoolDown     = 0;
 
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
     VPADReadError real_error;
@@ -20,9 +20,8 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 
     if (gEnabled) {
         if (result > 0 && real_error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCoolDown == 0 && OSIsHomeButtonMenuEnabled()) {
-            takeScreenshotTV  = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV;
-            takeScreenshotDRC = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC;
-
+            takeScreenshotTV   = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV;
+            takeScreenshotDRC  = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC;
             screenshotCoolDown = 60;
         }
         if (screenshotCoolDown > 0) {
@@ -38,44 +37,13 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
     if ((takeScreenshotTV || takeScreenshotDRC)) {
-        OSCalendarTime output;
-        OSTicksToCalendarTime(OSGetTime(), &output);
-        std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
-        if (!gShortNameEn.empty()) {
-            buffer += string_format(" (%s)", gShortNameEn.c_str());
-        }
-        buffer += string_format("/%04d-%02d-%02d/", output.tm_year, output.tm_mon + 1, output.tm_mday);
-
-        bool dirExists = true;
-        auto dir       = opendir(buffer.c_str());
-        if (dir) {
-            closedir(dir);
-        } else {
-            if (!FSUtils::CreateSubfolder(buffer.c_str())) {
-                DEBUG_FUNCTION_LINE_ERR("Failed to create dir: %s", buffer.c_str());
-                dirExists = false;
-            }
-        }
-
-        if (dirExists) {
-            buffer = string_format("%s%04d-%02d-%02d_%02d.%02d.%02d_",
-                                   buffer.c_str(), output.tm_year, output.tm_mon + 1,
-                                   output.tm_mday, output.tm_hour, output.tm_min, output.tm_sec);
-
-            if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && takeScreenshotTV) {
-                DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
-                takeScreenshot((GX2ColorBuffer *) colorBuffer, buffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality);
-                takeScreenshotTV = false;
-            } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && takeScreenshotDRC) {
-                DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
-                takeScreenshot((GX2ColorBuffer *) colorBuffer, buffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality);
-                takeScreenshotDRC = false;
-            }
-        }
-
-        if (scan_target == GX2_SCAN_TARGET_TV) {
+        if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && takeScreenshotTV) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
+            takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality);
             takeScreenshotTV = false;
-        } else if (scan_target == GX2_SCAN_TARGET_DRC) {
+        } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && takeScreenshotDRC) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
+            takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality);
             takeScreenshotDRC = false;
         }
     }

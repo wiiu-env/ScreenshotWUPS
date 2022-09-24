@@ -1,6 +1,9 @@
 #include "screenshot_utils.h"
 #include "common.h"
-#include "utils/utils.h"
+#include "fs/FSUtils.h"
+#include "retain_vars.hpp"
+#include "utils/StringTools.h"
+#include <coreinit/title.h>
 #include <gd.h>
 #include <gx2/event.h>
 #include <gx2/mem.h>
@@ -187,7 +190,7 @@ static bool copyBuffer(GX2ColorBuffer *sourceBuffer, GX2ColorBuffer *targetBuffe
     }
 }
 
-bool takeScreenshot(GX2ColorBuffer *srcBuffer, const std::string &path, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality) {
+bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality) {
     if (srcBuffer == nullptr) {
         DEBUG_FUNCTION_LINE_ERR("Source buffer was NULL");
         return false;
@@ -200,7 +203,27 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, const std::string &path, GX2ScanT
     uint32_t width  = srcBuffer->surface.width;
     uint32_t height = srcBuffer->surface.height;
 
-    std::string fullPath = path;
+    OSCalendarTime output;
+    OSTicksToCalendarTime(OSGetTime(), &output);
+    std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
+    if (!gShortNameEn.empty()) {
+        buffer += string_format(" (%s)", gShortNameEn.c_str());
+    }
+    buffer += string_format("/%04d-%02d-%02d/", output.tm_year, output.tm_mon + 1, output.tm_mday);
+
+    auto dir = opendir(buffer.c_str());
+    if (dir) {
+        closedir(dir);
+    } else {
+        if (!FSUtils::CreateSubfolder(buffer.c_str())) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to create dir: %s", buffer.c_str());
+            return false;
+        }
+    }
+
+    std::string fullPath = string_format("%s%04d-%02d-%02d_%02d.%02d.%02d_",
+                                         buffer.c_str(), output.tm_year, output.tm_mon + 1,
+                                         output.tm_mday, output.tm_hour, output.tm_min, output.tm_sec);
 
     if (scanTarget == GX2_SCAN_TARGET_DRC) {
         fullPath += "DRC";
