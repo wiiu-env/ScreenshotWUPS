@@ -106,8 +106,8 @@ bool WUPSConfigItemButtonCombo_callCallback(void *context) {
 void checkForHold(ConfigItemButtonCombo *item) {
     uint32_t lastHold        = 0;
     uint32_t holdFor         = 0;
-    uint32_t holdForTarget   = item->holdDurationInMs >> 3;
-    uint32_t holdAbortTarget = item->abortButtonHoldDurationInMs >> 3;
+    uint32_t holdForTarget   = item->holdDurationInMs >> 4;
+    uint32_t holdAbortTarget = item->abortButtonHoldDurationInMs >> 4;
 
     auto mask = VPAD_BUTTON_A | VPAD_BUTTON_B | VPAD_BUTTON_X | VPAD_BUTTON_Y | VPAD_BUTTON_L | VPAD_BUTTON_R |
                 VPAD_BUTTON_ZL | VPAD_BUTTON_ZR | VPAD_BUTTON_UP | VPAD_BUTTON_DOWN | VPAD_BUTTON_LEFT | VPAD_BUTTON_RIGHT |
@@ -131,6 +131,8 @@ void checkForHold(ConfigItemButtonCombo *item) {
                 if (kpad_error == KPAD_ERROR_OK && kpad_data.extensionType != 0xFF) {
                     if (kpad_data.extensionType == WPAD_EXT_CORE || kpad_data.extensionType == WPAD_EXT_NUNCHUK) {
                         buttonsHold |= remapWiiMoteButtons(kpad_data.hold);
+                    } else if (kpad_data.extensionType == WPAD_EXT_PRO_CONTROLLER) {
+                        buttonsHold |= remapProButtons(kpad_data.pro.hold);
                     } else {
                         buttonsHold |= remapClassicButtons(kpad_data.classic.hold);
                     }
@@ -157,7 +159,7 @@ void checkForHold(ConfigItemButtonCombo *item) {
             item->value = lastHold;
             break;
         }
-        OSSleepTicks(OSMillisecondsToTicks(8));
+        OSSleepTicks(OSMillisecondsToTicks(16));
     }
 }
 
