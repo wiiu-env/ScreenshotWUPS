@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "notifications/notifications.h"
 #include <coreinit/messagequeue.h>
 #include <coreinit/semaphore.h>
 #include <coreinit/thread.h>
@@ -16,6 +17,7 @@ struct FSIOThreadData {
 };
 
 struct SaveScreenshotMessage {
+    NotificationModuleHandle notificationHandle;
     uint8_t *sourceBuffer;
     uint32_t width;
     uint32_t height;

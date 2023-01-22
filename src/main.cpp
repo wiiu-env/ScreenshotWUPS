@@ -7,6 +7,7 @@
 #include <coreinit/title.h>
 #include <malloc.h>
 #include <nn/acp.h>
+#include <notifications/notifications.h>
 #include <string>
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
@@ -37,6 +38,11 @@ INITIALIZE_PLUGIN() {
     initLogging();
     gButtonCombo = VPAD_BUTTON_TV;
     OSMemoryBarrier();
+
+    NotificationModuleStatus res;
+    if ((res = NotificationModule_InitLibrary()) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("NotificationModule_InitLibrary failed: %s", NotificationModule_GetStatusStr(res));
+    }
 
     // Open storage to read values
     WUPSStorageError storageRes = WUPS_OpenStorage();
@@ -115,6 +121,10 @@ INITIALIZE_PLUGIN() {
     } else if (gQuality > 100) {
         gQuality = 100;
     }
+}
+
+DEINITIALIZE_PLUGIN() {
+    NotificationModule_DeInitLibrary();
 }
 
 void multipleValueItemCallback(ConfigItemMultipleValues *item, uint32_t newValue) {

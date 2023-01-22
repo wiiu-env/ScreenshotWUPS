@@ -13,12 +13,75 @@
 
 extern "C" uint32_t VPADGetButtonProcMode(uint32_t);
 
-DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
+void AlreadyInProgressCallback(NotificationModuleHandle handle, void *context) {
+    auto scanTarget = (GX2ScanTarget) (uint32_t) context;
+    if (scanTarget == GX2_SCAN_TARGET_TV) {
+        gInProgressNotificationDisplayedTV = false;
+    } else if (scanTarget == GX2_SCAN_TARGET_DRC) {
+        gInProgressNotificationDisplayedDRC = false;
+    }
+    OSMemoryBarrier();
+}
 
+void NotAvailableCallback(NotificationModuleHandle handle, void *context) {
+    gNotAvailableNotificationDisplayed = false;
+    OSMemoryBarrier();
+}
+
+void RequestScreenshot() {
+    NotificationModuleStatus err;
+    if (!OSIsHomeButtonMenuEnabled()) {
+        if (!gNotAvailableNotificationDisplayed) {
+            if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshots not available at the moment.",
+                                                                           NotAvailableCallback,
+                                                                           nullptr)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshots not available at the moment.\" notification");
+                DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                return;
+            }
+
+            gNotAvailableNotificationDisplayed = true;
+        }
+    } else {
+        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
+            if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
+                DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
+                gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+            } else if (!gInProgressNotificationDisplayedTV) {
+                if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the TV already in progress.",
+                                                                               AlreadyInProgressCallback,
+                                                                               (void *) GX2_SCAN_TARGET_TV)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshot of the TV already in progress.\" notification");
+                    DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                    return;
+                }
+                gInProgressNotificationDisplayedTV = true;
+            }
+        }
+        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+            if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
+                DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
+                gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+            } else if (!gInProgressNotificationDisplayedDRC) {
+                if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the GamePad already in progress.",
+                                                                               AlreadyInProgressCallback,
+                                                                               (void *) GX2_SCAN_TARGET_DRC)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshot of the GamePad already in progress.\" notification");
+                    DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                    return;
+                }
+                gInProgressNotificationDisplayedDRC = true;
+            }
+        }
+        OSMemoryBarrier();
+    }
+}
+
+DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
     VPADReadError real_error;
     int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
 
-    if (gEnabled && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
+    if (gEnabled) {
         if (result > 0 && real_error == VPAD_READ_SUCCESS) {
             uint32_t end = 1;
             // Fix games like TP HD
@@ -27,23 +90,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
             }
             for (uint32_t i = 0; i < end; i++) {
                 if (((buffer[i].trigger & 0x000FFFFF) == gButtonCombo)) {
-                    if (!OSIsHomeButtonMenuEnabled()) {
-                        DEBUG_FUNCTION_LINE("Screenshots are disabled");
-                    } else {
-                        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
-                            if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
-                                DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
-                                gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
-                            }
-                        }
-                        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
-                            if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
-                                DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
-                                gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
-                            }
-                        }
-                        OSMemoryBarrier();
-                    }
+                    RequestScreenshot();
                     break;
                 }
             }
@@ -60,7 +107,7 @@ static uint32_t sWPADLastButtonHold[4];
 DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
     real_WPADRead(chan, data);
 
-    if (gEnabled && chan >= 0 && chan < 4 && OSIsHomeButtonMenuEnabled() && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
+    if (gEnabled && chan >= 0 && chan < 4) {
         if (data[0].err == 0) {
             if (data[0].extensionType != 0xFF) {
                 uint32_t curButtonHold        = 0;
@@ -87,19 +134,7 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
                 }
 
                 if (forceScreenshot || (buttonComboConverted != 0 && curButtonTrigger == buttonComboConverted)) {
-                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
-                        if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
-                            DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
-                            gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
-                        }
-                    }
-                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
-                        if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
-                            DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
-                            gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
-                        }
-                    }
-                    OSMemoryBarrier();
+                    RequestScreenshot();
                 }
 
                 sWPADLastButtonHold[chan] = curButtonHold;

@@ -9,6 +9,7 @@
 #include <gx2/event.h>
 #include <gx2/mem.h>
 #include <memory/mappedmemory.h>
+#include <notifications/notifications.h>
 #include <valarray>
 
 bool saveTextureAsPicture(const std::string &path, uint8_t *sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, GX2SurfaceFormat format, ImageOutputFormatEnum outputFormat, bool convertRGBtoSRGB, int quality) {
@@ -176,9 +177,29 @@ static bool copyBuffer(GX2ColorBuffer *sourceBuffer, GX2ColorBuffer *targetBuffe
     }
 }
 
+void ScreenshotSavedCallback(NotificationModuleHandle handle, void *context) {
+    auto scanTarget = (GX2ScanTarget) (uint32_t) context;
+    if (scanTarget == GX2_SCAN_TARGET_TV) {
+        gTakeScreenshotTV = SCREENSHOT_STATE_READY;
+    } else {
+        gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+    }
+    OSMemoryBarrier();
+}
+
 bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality) {
     if (srcBuffer == nullptr) {
         DEBUG_FUNCTION_LINE_ERR("Source buffer was NULL");
+        return false;
+    }
+    auto text = string_format("\ue01e Saving screenshot of the %s...", scanTarget == GX2_SCAN_TARGET_TV ? "TV" : "GamePad");
+    NotificationModuleHandle screenshot;
+    NotificationModuleStatus err;
+    if ((err = NotificationModule_AddDynamicNotificationWithCallback(text.c_str(),
+                                                                     &screenshot,
+                                                                     ScreenshotSavedCallback,
+                                                                     (void *) scanTarget)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("NotificationModule_AddDynamicNotificationWithCallback failed: %s", NotificationModule_GetStatusStr(err));
         return false;
     }
 
@@ -231,6 +252,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
         goto error;
     }
 
+    param->notificationHandle = screenshot;
     param->sourceBuffer       = (uint8_t *) colorBuffer.surface.image;
     param->width              = width;
     param->height             = height;
@@ -257,5 +279,13 @@ error:
         colorBuffer.surface.image = nullptr;
     }
 
+    auto errorText = string_format("\ue01e Saving screenshot of the %s failed", scanTarget == GX2_SCAN_TARGET_TV ? "TV" : "GamePad");
+    if ((err = NotificationModule_UpdateDynamicNotificationText(screenshot, errorText.c_str())) != NOTIFICATION_MODULE_RESULT_SUCCESS ||
+        (err = NotificationModule_UpdateDynamicNotificationBackgroundColor(screenshot, COLOR_RED)) != NOTIFICATION_MODULE_RESULT_SUCCESS ||
+        (err = NotificationModule_FinishDynamicNotificationWithShake(screenshot, 2.0f, 0.5f)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to update notification: %s", NotificationModule_GetStatusStr(err));
+    }
+
+    OSMemoryBarrier();
     return false;
 }

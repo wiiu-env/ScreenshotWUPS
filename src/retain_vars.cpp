@@ -14,3 +14,9 @@ ScreenshotState gTakeScreenshotTV  = SCREENSHOT_STATE_READY;
 ScreenshotState gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
 
 bool gReservedBitUsage = true;
+
+bool gInProgressNotificationDisplayedDRC = false;
+bool gInProgressNotificationDisplayedTV  = false;
+bool gNotAvailableNotificationDisplayed  = false;
+
+NMColor COLOR_RED = {237, 28, 36, 255};

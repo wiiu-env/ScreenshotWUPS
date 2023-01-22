@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include <gx2/surface.h>
+#include <notifications/notifications.h>
 #include <string>
 
 extern bool gEnabled;
@@ -16,3 +17,9 @@ extern ScreenshotState gTakeScreenshotTV;
 extern ScreenshotState gTakeScreenshotDRC;
 
 extern bool gReservedBitUsage;
+
+extern bool gInProgressNotificationDisplayedDRC;
+extern bool gInProgressNotificationDisplayedTV;
+extern bool gNotAvailableNotificationDisplayed;
+
+extern NMColor COLOR_RED;

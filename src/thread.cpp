@@ -4,6 +4,7 @@
 #include "screenshot_utils.h"
 #include "utils/StringTools.h"
 #include "utils/logger.h"
+#include "utils/utils.h"
 #include <coreinit/cache.h>
 #include <coreinit/title.h>
 #include <dirent.h>
@@ -84,20 +85,25 @@ static int32_t fsIOthreadCallback([[maybe_unused]] int argc, const char **argv) 
                 DEBUG_FUNCTION_LINE("Saving to %s", path.c_str());
                 auto res = saveTextureAsPicture(path, message->sourceBuffer, message->width, message->height, message->pitch, message->format, message->outputFormat, message->convertRGBtoSRGB, message->quality);
                 if (res) {
-                    DEBUG_FUNCTION_LINE("Saving screenshot was successful");
+                    NotificationModuleStatus err;
+                    auto text = string_format("\ue01e Saving screenshot of the %s done!", message->scanTarget == GX2_SCAN_TARGET_TV ? "TV" : "GamePad");
+                    if ((err = NotificationModule_UpdateDynamicNotificationText(message->notificationHandle, text.c_str())) != NOTIFICATION_MODULE_RESULT_SUCCESS ||
+                        (err = NotificationModule_FinishDynamicNotification(message->notificationHandle, 2.0)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                        DEBUG_FUNCTION_LINE_ERR("Failed to update notification: %s", NotificationModule_GetStatusStr(err));
+                    }
                     success = true;
                 }
             } else {
                 DEBUG_FUNCTION_LINE_ERR("Failed to get and create path");
             }
             if (!success) {
-                DEBUG_FUNCTION_LINE("Saving screenshot failed");
-            }
-
-            if (message->scanTarget == GX2_SCAN_TARGET_TV) {
-                gTakeScreenshotTV = SCREENSHOT_STATE_READY;
-            } else if (message->scanTarget == GX2_SCAN_TARGET_DRC) {
-                gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+                NotificationModuleStatus err;
+                auto errorText = string_format("\ue01e Saving screenshot of the %s failed", message->scanTarget == GX2_SCAN_TARGET_TV ? "TV" : "GamePad");
+                if ((err = NotificationModule_UpdateDynamicNotificationText(message->notificationHandle, errorText.c_str())) != NOTIFICATION_MODULE_RESULT_SUCCESS ||
+                    (err = NotificationModule_UpdateDynamicNotificationBackgroundColor(message->notificationHandle, COLOR_RED)) != NOTIFICATION_MODULE_RESULT_SUCCESS ||
+                    (err = NotificationModule_FinishDynamicNotificationWithShake(message->notificationHandle, 2.0f, 0.5f)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to update notification: %s", NotificationModule_GetStatusStr(err));
+                }
             }
 
             // Free the colorbuffer copy.
