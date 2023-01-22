@@ -121,6 +121,9 @@ uint32_t remapVPADtoPro(uint32_t buttons) {
     if (buttons & VPAD_BUTTON_MINUS) {
         conv_buttons |= WPAD_PRO_BUTTON_MINUS;
     }
+    if (buttons & VPAD_BUTTON_RESERVED_BIT) {
+        conv_buttons |= WPAD_PRO_RESERVED;
+    }
     return conv_buttons;
 }
 
@@ -269,6 +272,9 @@ uint32_t remapProButtons(uint32_t buttons) {
     }
     if (buttons & WPAD_PRO_BUTTON_STICK_R) {
         conv_buttons |= VPAD_BUTTON_STICK_R;
+    }
+    if (buttons & WPAD_PRO_RESERVED) {
+        conv_buttons |= VPAD_BUTTON_RESERVED_BIT;
     }
     return conv_buttons;
 }

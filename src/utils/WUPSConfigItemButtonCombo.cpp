@@ -64,6 +64,9 @@ const char *getButtonChar(VPADButtons value) {
     if (value & VPAD_BUTTON_TV) {
         return "\ue089";
     }
+    if (value & VPAD_BUTTON_RESERVED_BIT) {
+        return "\ue01E";
+    }
     return "";
 }
 
@@ -111,7 +114,7 @@ void checkForHold(ConfigItemButtonCombo *item) {
 
     auto mask = VPAD_BUTTON_A | VPAD_BUTTON_B | VPAD_BUTTON_X | VPAD_BUTTON_Y | VPAD_BUTTON_L | VPAD_BUTTON_R |
                 VPAD_BUTTON_ZL | VPAD_BUTTON_ZR | VPAD_BUTTON_UP | VPAD_BUTTON_DOWN | VPAD_BUTTON_LEFT | VPAD_BUTTON_RIGHT |
-                VPAD_BUTTON_STICK_L | VPAD_BUTTON_STICK_R | VPAD_BUTTON_PLUS | VPAD_BUTTON_MINUS | VPAD_BUTTON_TV;
+                VPAD_BUTTON_STICK_L | VPAD_BUTTON_STICK_R | VPAD_BUTTON_PLUS | VPAD_BUTTON_MINUS | VPAD_BUTTON_TV | VPAD_BUTTON_RESERVED_BIT;
 
     KPADStatus kpad_data{};
     KPADError kpad_error;
