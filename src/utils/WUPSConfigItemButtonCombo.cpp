@@ -1,4 +1,5 @@
 #include "WUPSConfigItemButtonCombo.h"
+#include "StringTools.h"
 #include "utils/input.h"
 #include <coreinit/debug.h>
 #include <coreinit/thread.h>
@@ -10,7 +11,7 @@
 #include <vpad/input.h>
 #include <wups.h>
 
-std::string getButtonChar(VPADButtons value) {
+const char *getButtonChar(VPADButtons value) {
     std::string combo;
     if (value & VPAD_BUTTON_A) {
         return "\ue000";
@@ -63,66 +64,28 @@ std::string getButtonChar(VPADButtons value) {
     if (value & VPAD_BUTTON_TV) {
         return "\ue089";
     }
-    return "?";
+    return "";
 }
 
 std::string getComboAsString(uint32_t value) {
-    std::string combo;
-    if (value & VPAD_BUTTON_A) {
-        combo += getButtonChar(VPAD_BUTTON_A).append("+");
+    char comboString[60];
+    memset(comboString, 0, sizeof(comboString));
+
+    for (uint32_t i = 0; i < 32; i++) {
+        uint32_t bitMask = 1 << i;
+        if (value & bitMask) {
+            auto val = getButtonChar(static_cast<VPADButtons>(bitMask));
+            if (val[0] != '\0') {
+                strcat(comboString, val);
+                strcat(comboString, "+");
+            }
+        }
     }
-    if (value & VPAD_BUTTON_B) {
-        combo += getButtonChar(VPAD_BUTTON_B).append("+");
+    std::string res(comboString);
+    if (res.ends_with("+")) {
+        res.pop_back();
     }
-    if (value & VPAD_BUTTON_X) {
-        combo += getButtonChar(VPAD_BUTTON_X).append("+");
-    }
-    if (value & VPAD_BUTTON_Y) {
-        combo += getButtonChar(VPAD_BUTTON_Y).append("+");
-    }
-    if (value & VPAD_BUTTON_L) {
-        combo += getButtonChar(VPAD_BUTTON_L).append("+");
-    }
-    if (value & VPAD_BUTTON_R) {
-        combo += getButtonChar(VPAD_BUTTON_R).append("+");
-    }
-    if (value & VPAD_BUTTON_ZL) {
-        combo += getButtonChar(VPAD_BUTTON_ZL).append("+");
-    }
-    if (value & VPAD_BUTTON_ZR) {
-        combo += getButtonChar(VPAD_BUTTON_ZR).append("+");
-    }
-    if (value & VPAD_BUTTON_UP) {
-        combo += getButtonChar(VPAD_BUTTON_UP).append("+");
-    }
-    if (value & VPAD_BUTTON_DOWN) {
-        combo += getButtonChar(VPAD_BUTTON_DOWN).append("+");
-    }
-    if (value & VPAD_BUTTON_LEFT) {
-        combo += getButtonChar(VPAD_BUTTON_LEFT).append("+");
-    }
-    if (value & VPAD_BUTTON_RIGHT) {
-        combo += getButtonChar(VPAD_BUTTON_RIGHT).append("+");
-    }
-    if (value & VPAD_BUTTON_STICK_L) {
-        combo += getButtonChar(VPAD_BUTTON_STICK_L).append("+");
-    }
-    if (value & VPAD_BUTTON_STICK_R) {
-        combo += getButtonChar(VPAD_BUTTON_STICK_R).append("+");
-    }
-    if (value & VPAD_BUTTON_PLUS) {
-        combo += getButtonChar(VPAD_BUTTON_PLUS).append("+");
-    }
-    if (value & VPAD_BUTTON_MINUS) {
-        combo += getButtonChar(VPAD_BUTTON_MINUS).append("+");
-    }
-    if (value & VPAD_BUTTON_TV) {
-        combo += getButtonChar(VPAD_BUTTON_TV).append("+");
-    }
-    if (combo.ends_with("+")) {
-        combo.pop_back();
-    }
-    return combo;
+    return res;
 }
 
 int32_t WUPSConfigItemButtonCombo_getCurrentValueDisplay(void *context, char *out_buf, int32_t out_size) {
@@ -216,7 +179,7 @@ int32_t WUPSConfigItemButtonCombo_getCurrentValueSelectedDisplay(void *context, 
     if (item->state == BUTTON_COMBO_STATE_PREPARE_FOR_HOLD || item->state == BUTTON_COMBO_STATE_WAIT_FOR_HOLD) {
         if (item->state == BUTTON_COMBO_STATE_PREPARE_FOR_HOLD) {
             item->state = BUTTON_COMBO_STATE_WAIT_FOR_HOLD;
-            snprintf(out_buf, out_size, "<Hold new combo for %dms; hold %s to abort>", item->holdDurationInMs, getButtonChar(item->abortButton).c_str());
+            snprintf(out_buf, out_size, "<Hold new combo for %dms; hold %s to abort>", item->holdDurationInMs, getButtonChar(item->abortButton));
             return 0;
         } else {
             checkForHold(item);
