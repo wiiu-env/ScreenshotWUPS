@@ -1,12 +1,14 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 
-template<class T, class... Args>
-std::unique_ptr<T> make_unique_nothrow(Args &&...args) noexcept(noexcept(T(std::forward<Args>(args)...))) {
-    return std::unique_ptr<T>(new (std::nothrow) T(std::forward<Args>(args)...));
+extern uint8_t SRGBComponentToRGBTable[];
+extern uint8_t RGBComponentToSRGBTable[];
+
+inline uint8_t SRGBComponentToRGB(uint8_t ci) {
+    return SRGBComponentToRGBTable[ci];
 }
 
-template<class T, class... Args>
-std::shared_ptr<T> make_shared_nothrow(Args &&...args) noexcept(noexcept(T(std::forward<Args>(args)...))) {
-    return std::shared_ptr<T>(new (std::nothrow) T(std::forward<Args>(args)...));
+inline uint8_t RGBComponentToSRGB(uint8_t ci) {
+    return RGBComponentToSRGBTable[ci];
 }
