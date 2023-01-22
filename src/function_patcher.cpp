@@ -11,6 +11,8 @@
 #include <vpad/input.h>
 #include <wups.h>
 
+extern "C" uint32_t VPADGetButtonProcMode(uint32_t);
+
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
 
     VPADReadError real_error;
@@ -18,23 +20,31 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 
     if (gEnabled && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
         if (result > 0 && real_error == VPAD_READ_SUCCESS) {
-            if (((buffer[0].trigger & 0x000FFFFF) == gButtonCombo)) {
-                if (!OSIsHomeButtonMenuEnabled()) {
-                    DEBUG_FUNCTION_LINE("Screenshots are disabled");
-                } else {
-                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
-                        if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
-                            DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
-                            gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+            uint32_t end = 1;
+            // Fix games like TP HD
+            if (VPADGetButtonProcMode(chan) == 1) {
+                end = result;
+            }
+            for (uint32_t i = 0; i < end; i++) {
+                if (((buffer[i].trigger & 0x000FFFFF) == gButtonCombo)) {
+                    if (!OSIsHomeButtonMenuEnabled()) {
+                        DEBUG_FUNCTION_LINE("Screenshots are disabled");
+                    } else {
+                        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
+                            if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
+                                DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
+                                gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+                            }
                         }
-                    }
-                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
-                        if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
-                            DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
-                            gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+                        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+                            if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
+                                DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
+                                gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+                            }
                         }
+                        OSMemoryBarrier();
                     }
-                    OSMemoryBarrier();
+                    break;
                 }
             }
         }
