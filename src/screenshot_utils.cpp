@@ -1,10 +1,10 @@
 #include "screenshot_utils.h"
 #include "common.h"
-#include "fs/FSUtils.h"
 #include "retain_vars.hpp"
+#include "thread.h"
 #include "utils/StringTools.h"
-#include <coreinit/title.h>
 #include "utils/utils.h"
+#include <coreinit/cache.h>
 #include <gd.h>
 #include <gx2/event.h>
 #include <gx2/mem.h>
@@ -127,10 +127,13 @@ static bool copyBuffer(GX2ColorBuffer *sourceBuffer, GX2ColorBuffer *targetBuffe
         GX2InitColorBufferRegs(targetBuffer);
 
         // Let's allocate the memory.
+        // cannot be in unknown regions for GX2 like 0xBCAE1000
         targetBuffer->surface.image = MEMAllocFromMappedMemoryForGX2Ex(targetBuffer->surface.imageSize, targetBuffer->surface.alignment);
         if (targetBuffer->surface.image == nullptr) {
-            DEBUG_FUNCTION_LINE_ERR("Failed to allocate memory for the surface image");
+            DEBUG_FUNCTION_LINE_ERR("Failed to allocate %d bytes for the surface image", targetBuffer->surface.imageSize);
             return false;
+        } else {
+            DEBUG_FUNCTION_LINE("Allocated %d bytes for the surface image", targetBuffer->surface.imageSize);
         }
 
         GX2Invalidate(GX2_INVALIDATE_MODE_CPU, targetBuffer->surface.image, targetBuffer->surface.imageSize);
@@ -149,18 +152,17 @@ static bool copyBuffer(GX2ColorBuffer *sourceBuffer, GX2ColorBuffer *targetBuffe
 
             tempSurface.image = MEMAllocFromMappedMemoryForGX2Ex(tempSurface.imageSize, tempSurface.alignment);
             if (tempSurface.image == nullptr) {
-                DEBUG_FUNCTION_LINE_ERR("failed to allocate data for resolving AA");
+                DEBUG_FUNCTION_LINE_ERR("Failed to allocate %d bytes for resolving AA", tempSurface.imageSize);
                 if (targetBuffer->surface.image != nullptr) {
                     MEMFreeToMappedMemory(targetBuffer->surface.image);
                     targetBuffer->surface.image = nullptr;
                 }
                 return false;
+            } else {
+                DEBUG_FUNCTION_LINE("Allocated %d bytes for the surface image", targetBuffer->surface.imageSize);
             }
             GX2ResolveAAColorBuffer(sourceBuffer, &tempSurface, 0, 0);
             GX2CopySurface(&tempSurface, 0, 0, &targetBuffer->surface, 0, 0);
-
-            // Sync CPU and GPU
-            GX2DrawDone();
 
             if (tempSurface.image != nullptr) {
                 MEMFreeToMappedMemory(tempSurface.image);
@@ -181,60 +183,10 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
     }
 
     GX2ColorBuffer colorBuffer;
-    GX2ColorBuffer *saveBuffer = nullptr;
 
     // keep dimensions
     uint32_t width  = srcBuffer->surface.width;
     uint32_t height = srcBuffer->surface.height;
-
-    OSCalendarTime output;
-    OSTicksToCalendarTime(OSGetTime(), &output);
-    std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
-    if (!gShortNameEn.empty()) {
-        buffer += string_format(" (%s)", gShortNameEn.c_str());
-    }
-    buffer += string_format("/%04d-%02d-%02d/", output.tm_year, output.tm_mon + 1, output.tm_mday);
-
-    auto dir = opendir(buffer.c_str());
-    if (dir) {
-        closedir(dir);
-    } else {
-        if (!FSUtils::CreateSubfolder(buffer.c_str())) {
-            DEBUG_FUNCTION_LINE_ERR("Failed to create dir: %s", buffer.c_str());
-            return false;
-        }
-    }
-
-    std::string fullPath = string_format("%s%04d-%02d-%02d_%02d.%02d.%02d_",
-                                         buffer.c_str(), output.tm_year, output.tm_mon + 1,
-                                         output.tm_mday, output.tm_hour, output.tm_min, output.tm_sec);
-
-    if (scanTarget == GX2_SCAN_TARGET_DRC) {
-        fullPath += "DRC";
-    } else if (scanTarget == GX2_SCAN_TARGET_TV) {
-        fullPath += "TV";
-    } else if (scanTarget == GX2_SCAN_TARGET_DRC1) {
-        fullPath += "DRC2";
-    } else {
-        DEBUG_FUNCTION_LINE_ERR("Invalid scanTarget %d", scanTarget);
-        return false;
-    }
-
-    switch (outputFormat) {
-        case IMAGE_OUTPUT_FORMAT_JPEG:
-            fullPath += ".jpg";
-            break;
-        case IMAGE_OUTPUT_FORMAT_PNG:
-            fullPath += ".png";
-            break;
-        case IMAGE_OUTPUT_FORMAT_BMP:
-            fullPath += ".bmp";
-            break;
-        default:
-            DEBUG_FUNCTION_LINE_WARN("Invalid output format, use jpeg instead");
-            fullPath += ".jpg";
-            break;
-    }
 
     bool convertRGBToSRGB = false;
     if ((outputBufferSurfaceFormat & 0x400)) {
@@ -242,83 +194,68 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
         convertRGBToSRGB = true;
     }
 
-    bool valid;
-    bool cancel = false;
-    do {
-        // At first, we need to copy the buffer to fit our resolution.
-        if (saveBuffer == nullptr) {
-            do {
-                valid = copyBuffer(srcBuffer, &colorBuffer, width, height);
-                // If the copying failed, we don't have enough memory. Let's decrease the resolution.
-                if (!valid) {
-                    if (height >= 1080) {
-                        width  = 1280;
-                        height = 720;
-                        DEBUG_FUNCTION_LINE("Switching to 720p.");
-                    } else if (height >= 720) {
-                        width  = 854;
-                        height = 480;
-                        DEBUG_FUNCTION_LINE("Switching to 480p.");
-                    } else if (height >= 480) {
-                        width  = 640;
-                        height = 360;
-                        DEBUG_FUNCTION_LINE("Switching to 360p.");
-                    } else {
-                        // Cancel the screenshot if the resolution would be too low.
-                        cancel = true;
-                        break;
-                    }
-                } else {
-                    // On success save the pointer.
-                    saveBuffer = &colorBuffer;
-                }
-            } while (!valid);
+    bool res;
+
+    auto threadPriority = OSGetThreadPriority(OSGetCurrentThread()) + 1;
+    if (threadPriority != OSGetThreadPriority(gThreadData.thread)) {
+        DEBUG_FUNCTION_LINE_ERR("INFO! Set thread priority to %d", threadPriority);
+        if (!OSSetThreadPriority(gThreadData.thread, threadPriority)) {
+            DEBUG_FUNCTION_LINE_WARN("Failed to set thread priority");
         }
+    }
 
-        // Check if we should proceed
-        if (cancel) {
-            // Free the memory on error.
-            if (colorBuffer.surface.image != nullptr) {
-                MEMFreeToMappedMemory(colorBuffer.surface.image);
-                colorBuffer.surface.image = nullptr;
-            }
-            return false;
+    SaveScreenshotMessage *param;
+
+    bool valid = copyBuffer(srcBuffer, &colorBuffer, width, height);
+    if (!valid) {
+        if (width == 1920 && height == 1080) {
+            DEBUG_FUNCTION_LINE("Try to fallback to 720p");
+            valid  = copyBuffer(srcBuffer, &colorBuffer, 1280, 720);
+            width  = 1280;
+            height = 720;
         }
-
-        // Flush out destinations caches
-        GX2Invalidate(GX2_INVALIDATE_MODE_COLOR_BUFFER, colorBuffer.surface.image, colorBuffer.surface.imageSize);
-
-        // Wait for GPU to finish
-        GX2DrawDone();
-
-        valid = saveTextureAsPicture(fullPath, (uint8_t *) saveBuffer->surface.image, width, height, saveBuffer->surface.pitch, saveBuffer->surface.format, outputFormat, convertRGBToSRGB, quality);
-
-        // Free the colorbuffer copy.
-        if (colorBuffer.surface.image != nullptr) {
-            MEMFreeToMappedMemory(colorBuffer.surface.image);
-            colorBuffer.surface.image = nullptr;
-            saveBuffer                = nullptr;
-        }
-
-        // When taking the screenshot failed, decrease the resolution again ~.
         if (!valid) {
-            if (height >= 1080) {
-                width  = 1280;
-                height = 720;
-                DEBUG_FUNCTION_LINE("Switching to 720p.");
-            } else if (height >= 720) {
-                width  = 854;
-                height = 480;
-                DEBUG_FUNCTION_LINE("Switching to 480p.");
-            } else if (height >= 480) {
-                width  = 640;
-                height = 360;
-                DEBUG_FUNCTION_LINE("Switching to 360p.");
-            } else {
-                return false;
-            }
+            DEBUG_FUNCTION_LINE_ERR("Failed to copy color buffer");
+            goto error;
         }
-    } while (!valid);
+    }
 
+    // Flush out destinations caches
+    GX2Invalidate(GX2_INVALIDATE_MODE_COLOR_BUFFER, colorBuffer.surface.image, colorBuffer.surface.imageSize);
+
+    // Wait for GPU to finish
+    GX2DrawDone();
+
+    param = (SaveScreenshotMessage *) malloc(sizeof(SaveScreenshotMessage));
+    if (!param) {
+        goto error;
+    }
+
+    param->sourceBuffer       = (uint8_t *) colorBuffer.surface.image;
+    param->width              = width;
+    param->height             = height;
+    param->pitch              = colorBuffer.surface.pitch;
+    param->outputFormat       = outputFormat;
+    param->convertRGBtoSRGB   = convertRGBToSRGB;
+    param->quality            = quality;
+    param->format             = colorBuffer.surface.format;
+    param->scanTarget         = scanTarget;
+
+    res = sendMessageToThread(param);
+    if (!res) {
+        free(param);
+        goto error;
+    }
+
+    OSMemoryBarrier();
     return true;
+error:
+    DEBUG_FUNCTION_LINE_ERR("Taking screenshot failed");
+    // Free the colorbuffer copy.
+    if (colorBuffer.surface.image != nullptr) {
+        MEMFreeToMappedMemory(colorBuffer.surface.image);
+        colorBuffer.surface.image = nullptr;
+    }
+
+    return false;
 }

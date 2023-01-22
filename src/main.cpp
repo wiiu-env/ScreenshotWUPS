@@ -1,5 +1,6 @@
 #include "main.h"
 #include "retain_vars.hpp"
+#include "thread.h"
 #include "utils/WUPSConfigItemButtonCombo.h"
 #include "utils/logger.h"
 #include <coreinit/cache.h>
@@ -7,7 +8,6 @@
 #include <malloc.h>
 #include <nn/acp.h>
 #include <string>
-#include <vpad/input.h>
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
 #include <wups/config/WUPSConfigItemIntegerRange.h>
@@ -277,9 +277,12 @@ ON_APPLICATION_START() {
     } else {
         gShortNameEn.clear();
     }
+    startFSIOThreads();
     VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
 }
 
+
 ON_APPLICATION_REQUESTS_EXIT() {
+    stopFSIOThreads();
     deinitLogging();
 }
