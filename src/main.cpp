@@ -25,11 +25,12 @@ WUPS_USE_WUT_DEVOPTAB();
 
 WUPS_USE_STORAGE("screenshot_plugin");
 
-#define ENABLED_CONFIG_STRING      "enabled"
-#define BUTTON_COMBO_CONFIG_STRING "buttonCombo"
-#define FORMAT_CONFIG_STRING       "format"
-#define QUALITY_CONFIG_STRING      "quality"
-#define SCREEN_CONFIG_STRING       "screen"
+#define ENABLED_CONFIG_STRING            "enabled"
+#define BUTTON_COMBO_CONFIG_STRING       "buttonCombo"
+#define FORMAT_CONFIG_STRING             "format"
+#define QUALITY_CONFIG_STRING            "quality"
+#define SCREEN_CONFIG_STRING             "screen"
+#define RESERVED_BIT_USAGE_CONFIG_STRING "reservedBitUsage"
 
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
@@ -85,6 +86,16 @@ INITIALIZE_PLUGIN() {
         if ((storageRes = WUPS_GetInt(nullptr, BUTTON_COMBO_CONFIG_STRING, reinterpret_cast<int32_t *>(&gButtonCombo))) == WUPS_STORAGE_ERROR_NOT_FOUND) {
             // Add the value to the storage if it's missing.
             if (WUPS_StoreInt(nullptr, BUTTON_COMBO_CONFIG_STRING, (int32_t) gButtonCombo) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+        } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_ERR("Failed to get value %s (%d)", WUPS_GetStorageStatusStr(storageRes), storageRes);
+        }
+
+        // Try to get value from storage
+        if ((storageRes = WUPS_GetBool(nullptr, RESERVED_BIT_USAGE_CONFIG_STRING, &gReservedBitUsage)) == WUPS_STORAGE_ERROR_NOT_FOUND) {
+            // Add the value to the storage if it's missing.
+            if (WUPS_StoreBool(nullptr, RESERVED_BIT_USAGE_CONFIG_STRING, gReservedBitUsage) != WUPS_STORAGE_ERROR_SUCCESS) {
                 DEBUG_FUNCTION_LINE_ERR("Failed to store value");
             }
         } else if (storageRes != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -150,8 +161,11 @@ void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
     if (item && item->configId) {
         DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
         if (std::string_view(item->configId) == ENABLED_CONFIG_STRING) {
-            gEnabled = (ImageOutputFormatEnum) newValue;
+            gEnabled = newValue;
             WUPS_StoreBool(nullptr, item->configId, gEnabled);
+        } else if (std::string_view(item->configId) == RESERVED_BIT_USAGE_CONFIG_STRING) {
+            gReservedBitUsage = newValue;
+            WUPS_StoreBool(nullptr, item->configId, gReservedBitUsage);
         }
     }
 }
@@ -231,6 +245,8 @@ WUPS_GET_CONFIG() {
 
 
     WUPSConfigItemIntegerRange_AddToCategoryHandled(config, setting, QUALITY_CONFIG_STRING, "JPEG quality", gQuality, 10, 100, &integerRangeItemCallback);
+
+    WUPSConfigItemBoolean_AddToCategoryHandled(config, setting, RESERVED_BIT_USAGE_CONFIG_STRING, "Check ReservedBit for taking Screenshots", gReservedBitUsage, &boolItemCallback);
 
     return config;
 }
