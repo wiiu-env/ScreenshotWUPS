@@ -13,3 +13,9 @@ typedef enum {
     IMAGE_SOURCE_TV         = 1,
     IMAGE_SOURCE_DRC        = 2,
 } ImageSourceEnum;
+
+enum ScreenshotState {
+    SCREENSHOT_STATE_READY,
+    SCREENSHOT_STATE_REQUESTED,
+    SCREENSHOT_STATE_SAVING,
+};

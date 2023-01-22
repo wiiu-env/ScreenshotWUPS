@@ -2,27 +2,41 @@
 #include "fs/FSUtils.h"
 #include "retain_vars.hpp"
 #include "screenshot_utils.h"
+#include "thread.h"
 #include "utils/input.h"
 #include "utils/logger.h"
-#include <coreinit/time.h>
+#include <coreinit/cache.h>
 #include <gx2/surface.h>
 #include <padscore/wpad.h>
 #include <vpad/input.h>
 #include <wups.h>
 
-static bool takeScreenshotTV      = false;
-static bool takeScreenshotDRC     = false;
-static uint8_t screenshotCoolDown = 0;
-
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
+
     VPADReadError real_error;
     int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
 
-    if (gEnabled) {
-        if (result > 0 && real_error == VPAD_READ_SUCCESS && (buffer[0].hold == gButtonCombo) && screenshotCoolDown == 0 && OSIsHomeButtonMenuEnabled()) {
-            takeScreenshotTV   = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV;
-            takeScreenshotDRC  = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC;
-            screenshotCoolDown = 60;
+    if (gEnabled && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
+        if (result > 0 && real_error == VPAD_READ_SUCCESS) {
+            if (((buffer[0].trigger & 0x000FFFFF) == gButtonCombo)) {
+                if (!OSIsHomeButtonMenuEnabled()) {
+                    DEBUG_FUNCTION_LINE("Screenshots are disabled");
+                } else {
+                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
+                        if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
+                            DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
+                            gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+                        }
+                    }
+                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+                        if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
+                            DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
+                            gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+                        }
+                    }
+                    OSMemoryBarrier();
+                }
+            }
         }
     }
 
@@ -35,7 +49,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
     real_WPADRead(chan, data);
 
-    if (gEnabled && screenshotCoolDown == 0 && OSIsHomeButtonMenuEnabled()) {
+    if (gEnabled && OSIsHomeButtonMenuEnabled() && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
         if (data[0].err == 0) {
             if (data[0].extensionType != 0xFF) {
                 bool takeScreenshot = false;
@@ -58,9 +72,19 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
                     }
                 }
                 if (takeScreenshot) {
-                    takeScreenshotTV   = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV;
-                    takeScreenshotDRC  = gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC;
-                    screenshotCoolDown = 60;
+                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
+                        if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
+                            DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
+                            gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+                        }
+                    }
+                    if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+                        if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
+                            DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
+                            gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+                        }
+                    }
+                    OSMemoryBarrier();
                 }
             }
         }
@@ -68,20 +92,24 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
 }
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
-
-    if ((takeScreenshotTV || takeScreenshotDRC)) {
-        if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && takeScreenshotTV) {
+    if (gEnabled) {
+        if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
-            takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality);
-            takeScreenshotTV = false;
-        } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && takeScreenshotDRC) {
+            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality)) {
+                gTakeScreenshotTV = SCREENSHOT_STATE_READY;
+            } else {
+                gTakeScreenshotTV = SCREENSHOT_STATE_SAVING;
+            }
+        } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
-            takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality);
-            takeScreenshotDRC = false;
+            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality)) {
+                gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+            } else {
+                gTakeScreenshotDRC = SCREENSHOT_STATE_SAVING;
+            }
         }
-    } else if (screenshotCoolDown > 0) {
-        screenshotCoolDown--;
     }
+
     real_GX2CopyColorBufferToScanBuffer(colorBuffer, scan_target);
 }
 
