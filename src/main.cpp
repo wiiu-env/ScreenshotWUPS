@@ -34,7 +34,7 @@ WUPS_USE_STORAGE("screenshot_plugin");
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
     initLogging();
-    gButtonCombo = VPAD_BUTTON_R | VPAD_BUTTON_L | VPAD_BUTTON_ZR | VPAD_BUTTON_ZL;
+    gButtonCombo = VPAD_BUTTON_TV;
     OSMemoryBarrier();
 
     // Open storage to read values
@@ -277,6 +277,7 @@ ON_APPLICATION_START() {
     } else {
         gShortNameEn.clear();
     }
+    VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
 }
 
 ON_APPLICATION_REQUESTS_EXIT() {
