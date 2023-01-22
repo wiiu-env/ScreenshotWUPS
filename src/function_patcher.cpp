@@ -56,32 +56,30 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
     return result;
 }
 
+static uint32_t sWPADLastButtonHold[4];
 DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
     real_WPADRead(chan, data);
 
-    if (gEnabled && OSIsHomeButtonMenuEnabled() && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
+    if (gEnabled && chan >= 0 && chan < 4 && OSIsHomeButtonMenuEnabled() && (gTakeScreenshotTV == SCREENSHOT_STATE_READY || gTakeScreenshotDRC == SCREENSHOT_STATE_READY)) {
         if (data[0].err == 0) {
             if (data[0].extensionType != 0xFF) {
-                bool takeScreenshot = false;
+                uint32_t curButtonHold        = 0;
+                uint32_t buttonComboConverted = 0;
                 if (data[0].extensionType == WPAD_EXT_CORE || data[0].extensionType == WPAD_EXT_NUNCHUK) {
-                    auto buttonCombo = remapVPADtoWiimote(gButtonCombo);
+                    buttonComboConverted = remapVPADtoWiimote(gButtonCombo);
                     // button data is in the first 2 bytes for wiimotes
-                    if (buttonCombo != 0 && ((uint16_t *) data)[0] == buttonCombo) {
-                        takeScreenshot = true;
-                    }
+                    curButtonHold = ((uint16_t *) data)[0];
                 } else if (data[0].extensionType == WPAD_EXT_CLASSIC) {
-                    auto buttonCombo = remapVPADtoClassic(gButtonCombo);
-                    if (buttonCombo != 0 && (((uint32_t *) data)[10] & 0xFFFF) == buttonCombo) {
-                        takeScreenshot = true;
-                    }
+                    buttonComboConverted = remapVPADtoClassic(gButtonCombo);
+                    curButtonHold        = (((uint32_t *) data)[10] & 0xFFFF);
                 } else if (data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                    auto buttonCombo = remapVPADtoPro(gButtonCombo);
-
-                    if (buttonCombo != 0 && data[0].buttons == buttonCombo) {
-                        takeScreenshot = true;
-                    }
+                    buttonComboConverted = remapVPADtoPro(gButtonCombo);
+                    curButtonHold        = data[0].buttons;
                 }
-                if (takeScreenshot) {
+
+                uint32_t curButtonTrigger = (curButtonHold & (~(sWPADLastButtonHold[chan])));
+
+                if (buttonComboConverted != 0 && curButtonTrigger == buttonComboConverted) {
                     if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
                         if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
                             DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
@@ -96,6 +94,8 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
                     }
                     OSMemoryBarrier();
                 }
+
+                sWPADLastButtonHold[chan] = curButtonHold;
             }
         }
     }
