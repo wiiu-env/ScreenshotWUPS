@@ -127,7 +127,42 @@ DECL_FUNCTION(void, GX2SetDRCBuffer, void *buffer, uint32_t buffer_size, uint32_
     return real_GX2SetDRCBuffer(buffer, buffer_size, drc_mode, surface_format, buffering_mode);
 }
 
+GX2ColorBuffer lastTVColorBuffer;
+GX2ColorBuffer lastDRCColorBuffer;
+DECL_FUNCTION(void, GX2GetCurrentScanBuffer, GX2ScanTarget scanTarget, GX2ColorBuffer *cb) {
+    real_GX2GetCurrentScanBuffer(scanTarget, cb);
+    if (scanTarget == GX2_SCAN_TARGET_TV) {
+        memcpy(&lastTVColorBuffer, cb, sizeof(GX2ColorBuffer));
+    } else {
+        memcpy(&lastDRCColorBuffer, cb, sizeof(GX2ColorBuffer));
+    }
+}
+
+DECL_FUNCTION(void, GX2MarkScanBufferCopied, GX2ScanTarget scan_target) {
+    if (gEnabled) {
+        if (scan_target == GX2_SCAN_TARGET_TV && gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
+            if (!takeScreenshot((GX2ColorBuffer *) &lastTVColorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality)) {
+                gTakeScreenshotTV = SCREENSHOT_STATE_READY;
+            } else {
+                gTakeScreenshotTV = SCREENSHOT_STATE_SAVING;
+            }
+        } else if (scan_target == GX2_SCAN_TARGET_DRC0 && gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED) {
+            DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
+            if (!takeScreenshot((GX2ColorBuffer *) &lastDRCColorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality)) {
+                gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+            } else {
+                gTakeScreenshotDRC = SCREENSHOT_STATE_SAVING;
+            }
+        }
+    }
+
+    real_GX2MarkScanBufferCopied(scan_target);
+}
+
 WUPS_MUST_REPLACE(VPADRead, WUPS_LOADER_LIBRARY_VPAD, VPADRead);
+WUPS_MUST_REPLACE(GX2MarkScanBufferCopied, WUPS_LOADER_LIBRARY_GX2, GX2MarkScanBufferCopied);
+WUPS_MUST_REPLACE(GX2GetCurrentScanBuffer, WUPS_LOADER_LIBRARY_GX2, GX2GetCurrentScanBuffer);
 WUPS_MUST_REPLACE(GX2CopyColorBufferToScanBuffer, WUPS_LOADER_LIBRARY_GX2, GX2CopyColorBufferToScanBuffer);
 WUPS_MUST_REPLACE(GX2SetTVBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetTVBuffer);
 WUPS_MUST_REPLACE(GX2SetDRCBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetDRCBuffer);
