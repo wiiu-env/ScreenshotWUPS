@@ -79,7 +79,14 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
 
                 uint32_t curButtonTrigger = (curButtonHold & (~(sWPADLastButtonHold[chan])));
 
-                if (buttonComboConverted != 0 && curButtonTrigger == buttonComboConverted) {
+                bool forceScreenshot = false;
+                if (gReservedBitUsage && data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
+                    if (curButtonTrigger == WPAD_PRO_RESERVED) {
+                        forceScreenshot = true;
+                    }
+                }
+
+                if (forceScreenshot || (buttonComboConverted != 0 && curButtonTrigger == buttonComboConverted)) {
                     if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
                         if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
                             DEBUG_FUNCTION_LINE("Requested screenshot for TV!");

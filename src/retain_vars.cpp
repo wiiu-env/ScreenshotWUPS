@@ -12,3 +12,5 @@ std::string gShortNameEn;
 
 ScreenshotState gTakeScreenshotTV  = SCREENSHOT_STATE_READY;
 ScreenshotState gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+
+bool gReservedBitUsage = true;
