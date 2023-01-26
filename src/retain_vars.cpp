@@ -27,3 +27,7 @@ bool gBlockDRCScreenshots = false;
 bool gBlockScreenshots    = false;
 
 bool gInitNotificationModule = false;
+bool gCheckIfScreenRendered  = false;
+
+uint32_t gReadySinceFramesTV  = 0;
+uint32_t gReadySinceFramesDRC = 0;

@@ -46,7 +46,8 @@ void RequestScreenshot() {
         if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
             if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
                 DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
-                gTakeScreenshotTV = SCREENSHOT_STATE_REQUESTED;
+                gTakeScreenshotTV   = SCREENSHOT_STATE_REQUESTED;
+                gReadySinceFramesTV = 0;
             } else if (!gInProgressNotificationDisplayedTV) {
                 if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the TV already in progress.",
                                                                                AlreadyInProgressCallback,
@@ -65,7 +66,8 @@ void RequestScreenshot() {
             }
             if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
                 DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
-                gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
+                gTakeScreenshotDRC   = SCREENSHOT_STATE_REQUESTED;
+                gReadySinceFramesDRC = 0;
             } else if (!gInProgressNotificationDisplayedDRC) {
                 if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the GamePad already in progress.",
                                                                                AlreadyInProgressCallback,
@@ -149,7 +151,17 @@ DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
 
 DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorBuffer, GX2ScanTarget scan_target) {
     if (gEnabled) {
+        if (gCheckIfScreenRendered) {
+            if (gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED && ++gReadySinceFramesTV > 5) {
+                gTakeScreenshotTV   = SCREENSHOT_STATE_READY;
+                gReadySinceFramesTV = 0;
+            } else if (gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED && ++gReadySinceFramesDRC > 5) {
+                gTakeScreenshotDRC   = SCREENSHOT_STATE_READY;
+                gReadySinceFramesDRC = 0;
+            }
+        }
         if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED) {
+            gReadySinceFramesTV = 0;
             DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
             if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality)) {
                 gTakeScreenshotTV = SCREENSHOT_STATE_READY;
@@ -157,6 +169,7 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
                 gTakeScreenshotTV = SCREENSHOT_STATE_SAVING;
             }
         } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED) {
+            gReadySinceFramesDRC = 0;
             DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
             if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality)) {
                 gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
