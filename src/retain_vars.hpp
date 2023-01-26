@@ -23,3 +23,5 @@ extern bool gInProgressNotificationDisplayedTV;
 extern bool gNotAvailableNotificationDisplayed;
 
 extern NMColor COLOR_RED;
+
+extern int32_t gThreadPriorityIncrease;

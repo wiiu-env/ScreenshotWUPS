@@ -217,7 +217,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
 
     bool res;
 
-    auto threadPriority = OSGetThreadPriority(OSGetCurrentThread()) + 1;
+    auto threadPriority = OSGetThreadPriority(OSGetCurrentThread()) + gThreadPriorityIncrease;
     if (threadPriority != OSGetThreadPriority(gThreadData.thread)) {
         DEBUG_FUNCTION_LINE_ERR("INFO! Set thread priority to %d", threadPriority);
         if (!OSSetThreadPriority(gThreadData.thread, threadPriority)) {
