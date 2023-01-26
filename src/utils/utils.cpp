@@ -97,4 +97,17 @@ void ApplyGameSpecificPatches() {
     } else {
         gThreadPriorityIncrease = 1;
     }
+
+    // Some titles will softlock when trying to take screenshots, let's block them for now.
+    if (titleID == 0x0005000010110100L || // NANO ASSAULT NEO USA
+        titleID == 0x0005000010110600L || // NANO ASSAULT NEO EUR
+        titleID == 0x0005000010136400L || // NANO ASSAULT NEO JPN
+        titleID == 0x000500001010FA00L || // The Cave USA
+        titleID == 0x000500001012B500L || // The Cave EUR
+        titleID == 0x0005000010135600L    // The Cave JPN
+    ) {
+        gBlockScreenshots = true;
+    } else {
+        gBlockScreenshots = false;
+    }
 }
