@@ -41,6 +41,9 @@ ON_APPLICATION_START() {
 
     gShortNameEn = GetSanitizedNameOfCurrentApplication();
     startFSIOThreads();
+
+    ApplyGameSpecificPatches();
+
     VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
 }
 

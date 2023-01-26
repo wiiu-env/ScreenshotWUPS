@@ -20,3 +20,5 @@ bool gInProgressNotificationDisplayedTV  = false;
 bool gNotAvailableNotificationDisplayed  = false;
 
 NMColor COLOR_RED = {237, 28, 36, 255};
+
+int32_t gThreadPriorityIncrease = 1;

@@ -1,5 +1,6 @@
 #include "StringTools.h"
 #include "logger.h"
+#include "retain_vars.hpp"
 #include <coreinit/title.h>
 #include <malloc.h>
 #include <nn/acp/client.h>
@@ -75,4 +76,25 @@ std::string GetSanitizedNameOfCurrentApplication() {
         result.clear();
     }
     return result;
+}
+
+void ApplyGameSpecificPatches() {
+    uint64_t titleID = OSGetTitleID();
+    // Mario Kart 8 has noticeable slowdown when taking screenshots in multiplayer
+    // Decrease the IO thread priority to fix this
+    if (titleID == 0x000500001010ED00L || // Mario Kart 8 EUR
+        titleID == 0x000500001010EB00L || // Mario Kart 8 JPN
+        titleID == 0x000500001010EC00L) { // Mario Kart 8 USA
+        gThreadPriorityIncrease = 2;
+    } else if (titleID == 0x0005000010128400L || // Need for Speed™ Most Wanted U EUR
+               titleID == 0x0005000010128800L || // Need for Speed™ Most Wanted U USA
+               titleID == 0x000500001012B700L) { // Need for Speed™ Most Wanted U JPN
+        gThreadPriorityIncrease = 14;
+    } else if (titleID == 0x0005000010101E00L || // New SUPER MARIO BROS. U EUR
+               titleID == 0x0005000010101D00L || // New SUPER MARIO BROS. U USA
+               titleID == 0x0005000010101C00L) { // NNew SUPER MARIO BROS. U JPN
+        gThreadPriorityIncrease = 2;
+    } else {
+        gThreadPriorityIncrease = 1;
+    }
 }
