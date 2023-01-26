@@ -30,3 +30,7 @@ extern bool gBlockDRCScreenshots;
 extern bool gBlockScreenshots;
 
 extern bool gInitNotificationModule;
+extern bool gCheckIfScreenRendered;
+
+extern uint32_t gReadySinceFramesTV;
+extern uint32_t gReadySinceFramesDRC;

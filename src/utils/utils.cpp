@@ -139,4 +139,13 @@ void ApplyGameSpecificPatches() {
     } else {
         gBlockScreenshots = false;
     }
+
+    if (titleID == 0x0005000010138300L || // Donkey Kong Country Tropical Freeze EUR
+        titleID == 0x0005000010144800L || // Donkey Kong Country Tropical Freeze JPN
+        titleID == 0x0005000010137F00L    // Donkey Kong Country Tropical Freeze USA
+    ) {
+        gCheckIfScreenRendered = true;
+    } else {
+        gCheckIfScreenRendered = false;
+    }
 }
