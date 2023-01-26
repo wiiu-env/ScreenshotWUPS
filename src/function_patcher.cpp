@@ -59,6 +59,10 @@ void RequestScreenshot() {
             }
         }
         if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+            if (gBlockDRCScreenshots) {
+                DEBUG_FUNCTION_LINE("Screenshots are blocked for DRC because it's not connected");
+                return;
+            }
             if (gTakeScreenshotDRC == SCREENSHOT_STATE_READY) {
                 DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
                 gTakeScreenshotDRC = SCREENSHOT_STATE_REQUESTED;
