@@ -27,3 +27,4 @@ extern NMColor COLOR_RED;
 extern int32_t gThreadPriorityIncrease;
 
 extern bool gBlockDRCScreenshots;
+extern bool gBlockScreenshots;

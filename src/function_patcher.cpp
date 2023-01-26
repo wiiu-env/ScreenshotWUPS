@@ -30,7 +30,7 @@ void NotAvailableCallback(NotificationModuleHandle handle, void *context) {
 
 void RequestScreenshot() {
     NotificationModuleStatus err;
-    if (!OSIsHomeButtonMenuEnabled()) {
+    if (gBlockScreenshots || !OSIsHomeButtonMenuEnabled()) {
         if (!gNotAvailableNotificationDisplayed) {
             if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshots not available at the moment.",
                                                                            NotAvailableCallback,
