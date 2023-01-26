@@ -93,7 +93,6 @@ void InitConfig() {
     }
 }
 
-
 void multipleValueItemCallback(ConfigItemMultipleValues *item, uint32_t newValue) {
     if (item && item->configId) {
         DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);

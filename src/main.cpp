@@ -1,4 +1,5 @@
 #include "main.h"
+#include "DRCAttachCallback.h"
 #include "config.h"
 #include "retain_vars.hpp"
 #include "thread.h"
@@ -35,6 +36,10 @@ DEINITIALIZE_PLUGIN() {
     NotificationModule_DeInitLibrary();
 }
 
+ON_ACQUIRED_FOREGROUND() {
+    InitDRCAttachCallbacks();
+}
+
 // Called whenever an application was started.
 ON_APPLICATION_START() {
     initLogging();
@@ -45,6 +50,8 @@ ON_APPLICATION_START() {
     ApplyGameSpecificPatches();
 
     VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
+
+    InitDRCAttachCallbacks();
 }
 
 ON_APPLICATION_REQUESTS_EXIT() {
