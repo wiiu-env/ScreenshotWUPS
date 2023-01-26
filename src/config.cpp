@@ -83,6 +83,14 @@ void InitConfig() {
         }
     }
 
+    if (gButtonCombo & VPAD_BUTTON_TV) {
+        DEBUG_FUNCTION_LINE("Block TV Menu");
+        VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
+    } else {
+        DEBUG_FUNCTION_LINE("Unblock TV Menu");
+        VPADSetTVMenuInvalid(VPAD_CHAN_0, false);
+    }
+
     if (gOutputFormat >= 3) {
         gOutputFormat = IMAGE_OUTPUT_FORMAT_JPEG;
     }
@@ -151,6 +159,13 @@ void buttonComboItemChanged(ConfigItemButtonCombo *item, uint32_t newValue) {
         DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
         if (std::string_view(item->configId) == BUTTON_COMBO_CONFIG_STRING) {
             gButtonCombo = newValue;
+            if (gButtonCombo & VPAD_BUTTON_TV) {
+                DEBUG_FUNCTION_LINE("Block TV Menu");
+                VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
+            } else {
+                DEBUG_FUNCTION_LINE("Unblock TV Menu");
+                VPADSetTVMenuInvalid(VPAD_CHAN_0, false);
+            }
             WUPS_StoreInt(nullptr, item->configId, (int32_t) gButtonCombo);
         }
     }
