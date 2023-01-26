@@ -17,3 +17,5 @@ inline uint8_t RGBComponentToSRGB(uint8_t ci) {
 std::string GetSanitizedNameOfCurrentApplication();
 
 void ApplyGameSpecificPatches();
+
+void InitNotificationModule();

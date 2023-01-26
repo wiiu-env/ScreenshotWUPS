@@ -23,13 +23,10 @@ WUPS_USE_WUT_DEVOPTAB();
 // Gets called once the loader exists.
 INITIALIZE_PLUGIN() {
     initLogging();
-
-    NotificationModuleStatus res;
-    if ((res = NotificationModule_InitLibrary()) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("NotificationModule_InitLibrary failed: %s", NotificationModule_GetStatusStr(res));
-    }
-
     InitConfig();
+    if (gEnabled) {
+        InitNotificationModule();
+    }
 }
 
 DEINITIALIZE_PLUGIN() {

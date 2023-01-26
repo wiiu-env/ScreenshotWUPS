@@ -25,3 +25,5 @@ int32_t gThreadPriorityIncrease = 1;
 
 bool gBlockDRCScreenshots = false;
 bool gBlockScreenshots    = false;
+
+bool gInitNotificationModule = false;

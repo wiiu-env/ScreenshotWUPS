@@ -28,3 +28,5 @@ extern int32_t gThreadPriorityIncrease;
 
 extern bool gBlockDRCScreenshots;
 extern bool gBlockScreenshots;
+
+extern bool gInitNotificationModule;
