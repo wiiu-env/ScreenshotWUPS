@@ -83,6 +83,7 @@ void RequestScreenshot() {
     }
 }
 
+static uint32_t sWasHoldForXFrameGamePad;
 DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buffer_size, VPADReadError *error) {
     VPADReadError real_error;
     int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
@@ -94,11 +95,21 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
             if (VPADGetButtonProcMode(chan) == 1) {
                 end = result;
             }
+            bool found = false;
+
             for (uint32_t i = 0; i < end; i++) {
-                if (((buffer[i].trigger & 0x000FFFFF) == gButtonCombo)) {
-                    RequestScreenshot();
+                if ((((buffer[i].hold & 0x000FFFFF) & gButtonCombo) == gButtonCombo)) {
+                    found = true;
                     break;
                 }
+            }
+            if (found) {
+                if (sWasHoldForXFrameGamePad == 0) {
+                    RequestScreenshot();
+                }
+                sWasHoldForXFrameGamePad++;
+            } else {
+                sWasHoldForXFrameGamePad = 0;
             }
         }
     }
@@ -110,36 +121,42 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
 }
 
 static uint32_t sWPADLastButtonHold[4];
+static uint32_t sWasHoldForXFrame[4];
 DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
     real_WPADRead(chan, data);
 
     if (gEnabled && chan >= 0 && chan < 4) {
         if (data[0].err == 0) {
             if (data[0].extensionType != 0xFF) {
-                uint32_t curButtonHold        = 0;
-                uint32_t buttonComboConverted = 0;
+                uint32_t curButtonHold = 0;
                 if (data[0].extensionType == WPAD_EXT_CORE || data[0].extensionType == WPAD_EXT_NUNCHUK) {
-                    buttonComboConverted = remapVPADtoWiimote(gButtonCombo);
                     // button data is in the first 2 bytes for wiimotes
-                    curButtonHold = ((uint16_t *) data)[0];
+                    curButtonHold = remapWiiMoteButtons(((uint16_t *) data)[0]);
                 } else if (data[0].extensionType == WPAD_EXT_CLASSIC) {
-                    buttonComboConverted = remapVPADtoClassic(gButtonCombo);
-                    curButtonHold        = (((uint32_t *) data)[10] & 0xFFFF);
+                    curButtonHold = remapClassicButtons(((uint32_t *) data)[10] & 0xFFFF);
                 } else if (data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                    buttonComboConverted = remapVPADtoPro(gButtonCombo);
-                    curButtonHold        = data[0].buttons;
+                    curButtonHold = remapProButtons(data[0].buttons);
                 }
 
                 uint32_t curButtonTrigger = (curButtonHold & (~(sWPADLastButtonHold[chan])));
 
-                bool forceScreenshot = false;
-                if (gReservedBitUsage && data[0].extensionType == WPAD_EXT_PRO_CONTROLLER) {
-                    if (curButtonTrigger == WPAD_PRO_RESERVED) {
-                        forceScreenshot = true;
+                bool takeScreenshot = false;
+                if (gReservedBitUsage && curButtonTrigger & VPAD_BUTTON_RESERVED_BIT) {
+                    takeScreenshot = true;
+                }
+
+                if (!takeScreenshot) {
+                    if ((gButtonCombo != 0 && (curButtonHold & gButtonCombo) == gButtonCombo)) {
+                        if (sWasHoldForXFrame[chan] == 0) {
+                            takeScreenshot = true;
+                        }
+                        sWasHoldForXFrame[chan]++;
+                    } else {
+                        sWasHoldForXFrame[chan] = 0;
                     }
                 }
 
-                if (forceScreenshot || (buttonComboConverted != 0 && curButtonTrigger == buttonComboConverted)) {
+                if (takeScreenshot) {
                     RequestScreenshot();
                 }
 
