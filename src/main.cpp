@@ -3,10 +3,8 @@
 #include "thread.h"
 #include "utils/WUPSConfigItemButtonCombo.h"
 #include "utils/logger.h"
+#include "utils/utils.h"
 #include <coreinit/cache.h>
-#include <coreinit/title.h>
-#include <malloc.h>
-#include <nn/acp.h>
 #include <notifications/notifications.h>
 #include <string>
 #include <wups.h>
@@ -271,38 +269,8 @@ WUPS_CONFIG_CLOSED() {
 // Called whenever an application was started.
 ON_APPLICATION_START() {
     initLogging();
-    ACPInitialize();
-    auto *metaXml = (ACPMetaXml *) memalign(0x40, sizeof(ACPMetaXml));
-    if (ACPGetTitleMetaXml(OSGetTitleID(), metaXml) == ACP_RESULT_SUCCESS) {
-        gShortNameEn             = metaXml->shortname_en;
-        std::string illegalChars = "\\/:?\"<>|@=;`_^][";
-        for (auto it = gShortNameEn.begin(); it < gShortNameEn.end(); ++it) {
-            if (*it < '0' || *it > 'z') {
-                *it = ' ';
-            }
-        }
-        for (auto it = gShortNameEn.begin(); it < gShortNameEn.end(); ++it) {
-            bool found = illegalChars.find(*it) != std::string::npos;
-            if (found) {
-                *it = ' ';
-            }
-        }
-        uint32_t length = gShortNameEn.length();
-        for (uint32_t i = 1; i < length; ++i) {
-            if (gShortNameEn[i - 1] == ' ' && gShortNameEn[i] == ' ') {
-                gShortNameEn.erase(i, 1);
-                i--;
-                length--;
-            }
-        }
-        if (gShortNameEn.size() == 1 && gShortNameEn[0] == ' ') {
-            gShortNameEn.clear();
-        } else {
-            DEBUG_FUNCTION_LINE("Detected name as \"%s\"", gShortNameEn.c_str());
-        }
-    } else {
-        gShortNameEn.clear();
-    }
+
+    gShortNameEn = GetSanitizedNameOfCurrentApplication();
     startFSIOThreads();
     VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
 }

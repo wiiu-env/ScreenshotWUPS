@@ -1,4 +1,10 @@
-#include <cstdint>
+#include "StringTools.h"
+#include "logger.h"
+#include <coreinit/title.h>
+#include <malloc.h>
+#include <nn/acp/client.h>
+#include <nn/acp/title.h>
+#include <wups/storage.h>
 
 uint8_t RGBComponentToSRGBTable[] = {0x00, 0x0C, 0x15, 0x1C, 0x21, 0x26, 0x2A, 0x2E, 0x31, 0x34, 0x37, 0x3A, 0x3D, 0x3F, 0x42, 0x44,
                                      0x46, 0x49, 0x4B, 0x4D, 0x4F, 0x51, 0x52, 0x54, 0x56, 0x58, 0x59, 0x5B, 0x5D, 0x5E, 0x60, 0x61,
@@ -33,3 +39,40 @@ uint8_t SRGBComponentToRGBTable[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
                                      0xA0, 0xA2, 0xA4, 0xA6, 0xA7, 0xA9, 0xAB, 0xAD, 0xAF, 0xB0, 0xB2, 0xB4, 0xB6, 0xB8, 0xBA, 0xBC,
                                      0xBE, 0xC0, 0xC1, 0xC3, 0xC5, 0xC7, 0xC9, 0xCB, 0xCD, 0xCF, 0xD1, 0xD3, 0xD5, 0xD7, 0xDA, 0xDC,
                                      0xDE, 0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEB, 0xED, 0xEF, 0xF1, 0xF3, 0xF5, 0xF8, 0xFA, 0xFC, 0xFF};
+
+std::string GetSanitizedNameOfCurrentApplication() {
+    std::string result;
+    ACPInitialize();
+    auto *metaXml = (ACPMetaXml *) memalign(0x40, sizeof(ACPMetaXml));
+    if (ACPGetTitleMetaXml(OSGetTitleID(), metaXml) == ACP_RESULT_SUCCESS) {
+        result                   = metaXml->shortname_en;
+        std::string illegalChars = "\\/:?\"<>|@=;`_^][";
+        for (auto it = result.begin(); it < result.end(); ++it) {
+            if (*it < '0' || *it > 'z') {
+                *it = ' ';
+            }
+        }
+        for (auto it = result.begin(); it < result.end(); ++it) {
+            bool found = illegalChars.find(*it) != std::string::npos;
+            if (found) {
+                *it = ' ';
+            }
+        }
+        uint32_t length = result.length();
+        for (uint32_t i = 1; i < length; ++i) {
+            if (result[i - 1] == ' ' && result[i] == ' ') {
+                result.erase(i, 1);
+                i--;
+                length--;
+            }
+        }
+        if (result.size() == 1 && result[0] == ' ') {
+            result.clear();
+        } else {
+            DEBUG_FUNCTION_LINE("Detected name as \"%s\"", result.c_str());
+        }
+    } else {
+        result.clear();
+    }
+    return result;
+}
