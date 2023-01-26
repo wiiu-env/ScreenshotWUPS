@@ -1,4 +1,5 @@
 #include "StringTools.h"
+#include "config.h"
 #include "logger.h"
 #include "retain_vars.hpp"
 #include <coreinit/title.h>
@@ -76,6 +77,34 @@ std::string GetSanitizedNameOfCurrentApplication() {
         result.clear();
     }
     return result;
+}
+
+
+void InitNotificationModule() {
+    if (gInitNotificationModule) {
+        return;
+    }
+    NotificationModuleStatus res;
+    if ((res = NotificationModule_InitLibrary()) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+        gInitNotificationModule     = true;
+        std::string error           = string_format("Failed to init Screenshot Plugin: \n"
+                                                              "NotificationModule_InitLibrary returned:\n%s\n\n"
+                                                              "Please update to latest Aroma before using the plugin.\n\n"
+                                                              "The plugin has been disabled. You need to enable again in the\n"
+                                                              "config menu after updating\n\n"
+                                                              "Hold the POWER button of your CONSOLE for 5 seconds to shut down.",
+                                                    NotificationModule_GetStatusStr(res));
+        gEnabled                    = false;
+        WUPSStorageError storageRes = WUPS_OpenStorage();
+        if (storageRes == WUPS_STORAGE_ERROR_SUCCESS) {
+            if (WUPS_StoreBool(nullptr, ENABLED_CONFIG_STRING, gEnabled) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to store value");
+            }
+            WUPS_CloseStorage();
+        }
+
+        OSFatal(error.c_str());
+    }
 }
 
 void ApplyGameSpecificPatches() {

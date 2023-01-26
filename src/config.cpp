@@ -1,7 +1,9 @@
 #include "config.h"
+#include "common.h"
 #include "retain_vars.hpp"
 #include "utils/WUPSConfigItemButtonCombo.h"
 #include "utils/logger.h"
+#include "utils/utils.h"
 #include <vpad/input.h>
 #include <wups.h>
 #include <wups/config/WUPSConfigItemBoolean.h>
@@ -146,6 +148,9 @@ void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
         DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
         if (std::string_view(item->configId) == ENABLED_CONFIG_STRING) {
             gEnabled = newValue;
+            if (gEnabled) {
+                InitNotificationModule();
+            }
             WUPS_StoreBool(nullptr, item->configId, gEnabled);
         } else if (std::string_view(item->configId) == RESERVED_BIT_USAGE_CONFIG_STRING) {
             gReservedBitUsage = newValue;
