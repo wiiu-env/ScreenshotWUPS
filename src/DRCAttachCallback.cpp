@@ -47,7 +47,15 @@ WUPS_MUST_REPLACE(CCRCDCRegisterUVCAttachCallback, WUPS_LOADER_LIBRARY_NSYSCCR, 
 void DRCAttachDetachCallback(CCRCDCCallbackData *data, void *context) {
     gBlockDRCScreenshots = !data->attached;
 
-    if (!data->attached) {
+    if (data->attached) {
+        if (gButtonCombo & VPAD_BUTTON_TV) {
+            DEBUG_FUNCTION_LINE("Block TV Menu");
+            VPADSetTVMenuInvalid(data->chan, true);
+        } else {
+            DEBUG_FUNCTION_LINE("Unblock TV Menu");
+            VPADSetTVMenuInvalid(data->chan, false);
+        }
+    } else {
         DEBUG_FUNCTION_LINE("Block DRC screenshots");
     }
     OSMemoryBarrier();

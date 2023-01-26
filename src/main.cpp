@@ -49,8 +49,6 @@ ON_APPLICATION_START() {
 
     ApplyGameSpecificPatches();
 
-    VPADSetTVMenuInvalid(VPAD_CHAN_0, true);
-
     InitDRCAttachCallbacks();
 }
 
