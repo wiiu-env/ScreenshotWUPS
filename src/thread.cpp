@@ -74,7 +74,7 @@ static int32_t fsIOthreadCallback([[maybe_unused]] int argc, const char **argv) 
     OSMessage recv;
     while (OSReceiveMessage(&magic->queue, &recv, OS_MESSAGE_FLAGS_BLOCKING)) {
         if (recv.args[0] == FS_IO_QUEUE_COMMAND_STOP) {
-            DEBUG_FUNCTION_LINE_VERBOSE("Received break command! Stop thread");
+            DEBUG_FUNCTION_LINE("Received break command! Stop thread");
             break;
         } else if (recv.args[0] == FS_IO_QUEUE_COMMAND_PROCESS_FS_COMMAND) {
             auto *message = (SaveScreenshotMessage *) recv.message;
@@ -184,6 +184,11 @@ void stopFSIOThreads() {
     message.args[0] = FS_IO_QUEUE_COMMAND_STOP;
     OSSendMessage(&thread->queue, &message, OS_MESSAGE_FLAGS_BLOCKING);
 
+    if (!OSSetThreadPriority(thread->thread, 0)) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to boost priority, the game might softlock");
+    } else {
+        DEBUG_FUNCTION_LINE_VERBOSE("Set priority to 0!");
+    }
     if (OSIsThreadSuspended(thread->thread)) {
         OSResumeThread(thread->thread);
     }
