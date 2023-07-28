@@ -14,14 +14,12 @@
 FSIOThreadData gThreadData;
 bool gThreadsRunning;
 
-bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::string &path) {
-    OSCalendarTime output;
-    OSTicksToCalendarTime(OSGetTime(), &output);
+bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::string &path, OSCalendarTime outputTime) {
     std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
     if (!gShortNameEn.empty()) {
         buffer += string_format(" (%s)", gShortNameEn.c_str());
     }
-    buffer += string_format("/%04d-%02d-%02d/", output.tm_year, output.tm_mon + 1, output.tm_mday);
+    buffer += string_format("/%04d-%02d-%02d/", outputTime.tm_year, outputTime.tm_mon + 1, outputTime.tm_mday);
 
     auto dir = opendir(buffer.c_str());
     if (dir) {
@@ -34,8 +32,8 @@ bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::
     }
 
     path += string_format("%s%04d-%02d-%02d_%02d.%02d.%02d.%03d_",
-                          buffer.c_str(), output.tm_year, output.tm_mon + 1,
-                          output.tm_mday, output.tm_hour, output.tm_min, output.tm_sec, output.tm_msec);
+                          buffer.c_str(), outputTime.tm_year, outputTime.tm_mon + 1,
+                          outputTime.tm_mday, outputTime.tm_hour, outputTime.tm_min, outputTime.tm_sec, outputTime.tm_msec);
 
     if (scanTarget == GX2_SCAN_TARGET_DRC) {
         path += "DRC";
@@ -81,7 +79,7 @@ static int32_t fsIOthreadCallback([[maybe_unused]] int argc, const char **argv) 
 
             std::string path;
             bool success = false;
-            if (getPath(message->scanTarget, message->outputFormat, path)) {
+            if (getPath(message->scanTarget, message->outputFormat, path, message->time)) {
                 DEBUG_FUNCTION_LINE("Saving to %s", path.c_str());
                 auto res = saveTextureAsPicture(path, message->sourceBuffer, message->width, message->height, message->pitch, message->format, message->outputFormat, message->convertRGBtoSRGB, message->quality);
                 if (res) {

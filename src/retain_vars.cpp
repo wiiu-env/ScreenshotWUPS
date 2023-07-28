@@ -13,6 +13,8 @@ std::string gShortNameEn;
 ScreenshotState gTakeScreenshotTV  = SCREENSHOT_STATE_READY;
 ScreenshotState gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
 
+OSCalendarTime gCalendarTime;
+
 bool gReservedBitUsage = true;
 
 bool gInProgressNotificationDisplayedDRC = false;

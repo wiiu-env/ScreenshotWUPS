@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include <coreinit/time.h>
 #include <gx2/surface.h>
 #include <notifications/notifications.h>
 #include <string>
@@ -15,6 +16,8 @@ extern std::string gShortNameEn;
 
 extern ScreenshotState gTakeScreenshotTV;
 extern ScreenshotState gTakeScreenshotDRC;
+
+extern OSCalendarTime gCalendarTime;
 
 extern bool gReservedBitUsage;
 

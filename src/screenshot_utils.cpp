@@ -187,7 +187,7 @@ void ScreenshotSavedCallback(NotificationModuleHandle handle, void *context) {
     OSMemoryBarrier();
 }
 
-bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality) {
+bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality, OSCalendarTime outputTime) {
     if (srcBuffer == nullptr) {
         DEBUG_FUNCTION_LINE_ERR("Source buffer was NULL");
         return false;
@@ -262,6 +262,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
     param->quality            = quality;
     param->format             = colorBuffer.surface.format;
     param->scanTarget         = scanTarget;
+    param->time               = outputTime;
 
     res = sendMessageToThread(param);
     if (!res) {

@@ -43,6 +43,7 @@ void RequestScreenshot() {
             gNotAvailableNotificationDisplayed = true;
         }
     } else {
+        OSTicksToCalendarTime(OSGetTime(), &gCalendarTime);
         if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
             if (gTakeScreenshotTV == SCREENSHOT_STATE_READY) {
                 DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
@@ -180,7 +181,7 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
         if (scan_target == GX2_SCAN_TARGET_TV && colorBuffer != nullptr && gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED) {
             gReadySinceFramesTV = 0;
             DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
-            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality)) {
+            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality, gCalendarTime)) {
                 gTakeScreenshotTV = SCREENSHOT_STATE_READY;
             } else {
                 gTakeScreenshotTV = SCREENSHOT_STATE_SAVING;
@@ -188,7 +189,7 @@ DECL_FUNCTION(void, GX2CopyColorBufferToScanBuffer, const GX2ColorBuffer *colorB
         } else if (scan_target == GX2_SCAN_TARGET_DRC0 && colorBuffer != nullptr && gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED) {
             gReadySinceFramesDRC = 0;
             DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
-            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality)) {
+            if (!takeScreenshot((GX2ColorBuffer *) colorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality, gCalendarTime)) {
                 gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
             } else {
                 gTakeScreenshotDRC = SCREENSHOT_STATE_SAVING;
@@ -228,14 +229,14 @@ DECL_FUNCTION(void, GX2MarkScanBufferCopied, GX2ScanTarget scan_target) {
     if (gEnabled) {
         if (scan_target == GX2_SCAN_TARGET_TV && gTakeScreenshotTV == SCREENSHOT_STATE_REQUESTED) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from TV.");
-            if (!takeScreenshot((GX2ColorBuffer *) &lastTVColorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality)) {
+            if (!takeScreenshot((GX2ColorBuffer *) &lastTVColorBuffer, scan_target, gTVSurfaceFormat, gOutputFormat, gQuality, gCalendarTime)) {
                 gTakeScreenshotTV = SCREENSHOT_STATE_READY;
             } else {
                 gTakeScreenshotTV = SCREENSHOT_STATE_SAVING;
             }
         } else if (scan_target == GX2_SCAN_TARGET_DRC0 && gTakeScreenshotDRC == SCREENSHOT_STATE_REQUESTED) {
             DEBUG_FUNCTION_LINE("Lets take a screenshot from DRC.");
-            if (!takeScreenshot((GX2ColorBuffer *) &lastDRCColorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality)) {
+            if (!takeScreenshot((GX2ColorBuffer *) &lastDRCColorBuffer, scan_target, gDRCSurfaceFormat, gOutputFormat, gQuality, gCalendarTime)) {
                 gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
             } else {
                 gTakeScreenshotDRC = SCREENSHOT_STATE_SAVING;
