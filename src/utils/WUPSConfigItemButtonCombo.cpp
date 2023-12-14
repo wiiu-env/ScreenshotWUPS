@@ -1,5 +1,4 @@
 #include "WUPSConfigItemButtonCombo.h"
-#include "StringTools.h"
 #include "utils/input.h"
 #include <coreinit/debug.h>
 #include <coreinit/thread.h>
@@ -11,7 +10,7 @@
 #include <vpad/input.h>
 #include <wups.h>
 
-const char *getButtonChar(VPADButtons value) {
+static const char *getButtonChar(VPADButtons value) {
     std::string combo;
     if (value & VPAD_BUTTON_A) {
         return "\ue000";
@@ -70,7 +69,7 @@ const char *getButtonChar(VPADButtons value) {
     return "";
 }
 
-std::string getComboAsString(uint32_t value) {
+static std::string getComboAsString(uint32_t value) {
     char comboString[60];
     memset(comboString, 0, sizeof(comboString));
 
@@ -91,22 +90,20 @@ std::string getComboAsString(uint32_t value) {
     return res;
 }
 
-int32_t WUPSConfigItemButtonCombo_getCurrentValueDisplay(void *context, char *out_buf, int32_t out_size) {
+static int32_t WUPSConfigItemButtonCombo_getCurrentValueDisplay(void *context, char *out_buf, int32_t out_size) {
     auto *item = (ConfigItemButtonCombo *) context;
     snprintf(out_buf, out_size, "%s", getComboAsString(item->value).c_str());
     return 0;
 }
 
-bool WUPSConfigItemButtonCombo_callCallback(void *context) {
+static void WUPSConfigItemButtonCombo_onCloseCallback(void *context) {
     auto *item = (ConfigItemButtonCombo *) context;
-    if (item->callback != nullptr) {
-        ((ButtonComboValueChangedCallback) (item->callback))(item, item->value);
-        return true;
+    if (item->valueAtCreation != item->value && item->valueChangedCallback != nullptr) {
+        ((ButtonComboValueChangedCallback) (item->valueChangedCallback))(item, item->value);
     }
-    return false;
 }
 
-void checkForHold(ConfigItemButtonCombo *item) {
+static void checkForHold(ConfigItemButtonCombo *item) {
     uint32_t lastHold        = 0;
     uint32_t holdFor         = 0;
     uint32_t holdForTarget   = item->holdDurationInMs >> 4;
@@ -122,9 +119,8 @@ void checkForHold(ConfigItemButtonCombo *item) {
     while (true) {
         uint32_t buttonsHold     = 0;
         VPADReadError vpad_error = VPAD_READ_UNINITIALIZED;
-        VPADStatus vpad_data;
-        VPADRead(VPAD_CHAN_0, &vpad_data, 1, &vpad_error);
-        if (vpad_error == VPAD_READ_SUCCESS) {
+        VPADStatus vpad_data     = {};
+        if (VPADRead(VPAD_CHAN_0, &vpad_data, 1, &vpad_error) > 0 && vpad_error == VPAD_READ_SUCCESS) {
             buttonsHold = vpad_data.hold;
         }
 
@@ -166,20 +162,16 @@ void checkForHold(ConfigItemButtonCombo *item) {
     }
 }
 
-void WUPSConfigItemButtonCombo_onButtonPressed(void *context, WUPSConfigButtons buttons) {
+static void WUPSConfigItemButtonCombo_onInput(void *context, WUPSConfigSimplePadData input) {
     auto *item = (ConfigItemButtonCombo *) context;
     if (item->state == BUTTON_COMBO_STATE_NONE) {
-        if ((buttons & WUPS_CONFIG_BUTTON_A) == WUPS_CONFIG_BUTTON_A) {
+        if ((input.buttons_d & WUPS_CONFIG_BUTTON_A) == WUPS_CONFIG_BUTTON_A) {
             item->state = BUTTON_COMBO_STATE_PREPARE_FOR_HOLD;
         }
     }
 }
 
-bool WUPSConfigItemButtonCombo_isMovementAllowed(void *context) {
-    return true;
-}
-
-int32_t WUPSConfigItemButtonCombo_getCurrentValueSelectedDisplay(void *context, char *out_buf, int32_t out_size) {
+static int32_t WUPSConfigItemButtonCombo_getCurrentValueSelectedDisplay(void *context, char *out_buf, int32_t out_size) {
     auto *item = (ConfigItemButtonCombo *) context;
     if (item->state == BUTTON_COMBO_STATE_PREPARE_FOR_HOLD || item->state == BUTTON_COMBO_STATE_WAIT_FOR_HOLD) {
         if (item->state == BUTTON_COMBO_STATE_PREPARE_FOR_HOLD) {
@@ -195,72 +187,112 @@ int32_t WUPSConfigItemButtonCombo_getCurrentValueSelectedDisplay(void *context, 
     return 0;
 }
 
-void WUPSConfigItemButtonCombo_restoreDefault(void *context) {
+static void WUPSConfigItemButtonCombo_restoreDefault(void *context) {
     auto *item  = (ConfigItemButtonCombo *) context;
     item->value = item->defaultValue;
 }
 
-void WUPSConfigItemButtonCombo_onSelected(void *context, bool isSelected) {
-}
-
-void WUPSConfigItemButtonCombo_onDelete(void *context) {
-    auto *item = (ConfigItemButtonCombo *) context;
-    if (item->configId) {
-        free(item->configId);
+static void WUPSConfigItemButtonCombo_Cleanup(ConfigItemButtonCombo *item) {
+    if (!item) {
+        return;
     }
+    free((void *) item->identifier);
     free(item);
 }
 
-extern "C" bool
-WUPSConfigItemButtonComboAddToCategoryEx(WUPSConfigCategoryHandle cat, const char *configID, const char *displayName, uint32_t defaultComboInVPADButtons, uint32_t holdDurationInMs, VPADButtons abortButton, uint32_t abortButtonHoldDurationInMs, ButtonComboValueChangedCallback callback) {
-    if (cat == 0) {
-        return false;
+static void WUPSConfigItemButtonCombo_onDelete(void *context) {
+    WUPSConfigItemButtonCombo_Cleanup((ConfigItemButtonCombo *) context);
+}
+
+extern "C" WUPSConfigAPIStatus
+WUPSConfigItemButtonCombo_CreateEx(const char *identifier,
+                                   const char *displayName,
+                                   uint32_t defaultComboInVPADButtons, uint32_t currentComboInVPADButtons,
+                                   uint32_t holdDurationInMs,
+                                   VPADButtons abortButton,
+                                   uint32_t abortButtonHoldDurationInMs,
+                                   ButtonComboValueChangedCallback callback,
+                                   WUPSConfigItemHandle *outHandle) {
+    if (outHandle == nullptr) {
+        return WUPSCONFIG_API_RESULT_INVALID_ARGUMENT;
     }
     auto *item = (ConfigItemButtonCombo *) malloc(sizeof(ConfigItemButtonCombo));
     if (item == nullptr) {
         OSReport("WUPSConfigItemButtonComboAddToCategoryEx: Failed to allocate memory for item data.\n");
-        return false;
+        return WUPSCONFIG_API_RESULT_INVALID_ARGUMENT;
     }
 
-    if (configID != nullptr) {
-        item->configId = strdup(configID);
+    if (identifier != nullptr) {
+        item->identifier = strdup(identifier);
     } else {
-        item->configId = nullptr;
+        item->identifier = nullptr;
     }
 
     item->abortButton                 = abortButton;
     item->abortButtonHoldDurationInMs = abortButtonHoldDurationInMs;
     item->holdDurationInMs            = holdDurationInMs;
     item->defaultValue                = defaultComboInVPADButtons;
-    item->value                       = defaultComboInVPADButtons;
-    item->callback                    = (void *) callback;
+    item->value                       = currentComboInVPADButtons;
+    item->valueAtCreation             = currentComboInVPADButtons;
+    item->valueChangedCallback        = (void *) callback;
     item->state                       = BUTTON_COMBO_STATE_NONE;
 
-    WUPSConfigCallbacks_t callbacks = {
+    WUPSConfigAPIItemCallbacksV2 callbacks = {
             .getCurrentValueDisplay         = &WUPSConfigItemButtonCombo_getCurrentValueDisplay,
             .getCurrentValueSelectedDisplay = &WUPSConfigItemButtonCombo_getCurrentValueSelectedDisplay,
-            .onSelected                     = &WUPSConfigItemButtonCombo_onSelected,
+            .onSelected                     = nullptr,
             .restoreDefault                 = &WUPSConfigItemButtonCombo_restoreDefault,
-            .isMovementAllowed              = &WUPSConfigItemButtonCombo_isMovementAllowed,
-            .callCallback                   = &WUPSConfigItemButtonCombo_callCallback,
-            .onButtonPressed                = &WUPSConfigItemButtonCombo_onButtonPressed,
-            .onDelete                       = &WUPSConfigItemButtonCombo_onDelete};
+            .isMovementAllowed              = nullptr,
+            .onCloseCallback                = &WUPSConfigItemButtonCombo_onCloseCallback,
+            .onInput                        = &WUPSConfigItemButtonCombo_onInput,
+            .onInputEx                      = nullptr,
+            .onDelete                       = &WUPSConfigItemButtonCombo_onDelete,
+    };
 
-    if (WUPSConfigItem_Create(&item->handle, configID, displayName, callbacks, item) < 0) {
+    WUPSConfigAPIItemOptionsV2 options = {
+            .displayName = displayName,
+            .context     = item,
+            .callbacks   = callbacks,
+    };
+
+    WUPSConfigAPIStatus err;
+    if ((err = WUPSConfigAPI_Item_Create(options, &item->handle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
         OSReport("WUPSConfigItemButtonComboAddToCategoryEx: Failed to create config item.\n");
-        free(item);
-        return false;
+        WUPSConfigItemButtonCombo_Cleanup(item);
+        return err;
     }
 
-    if (WUPSConfigCategory_AddItem(cat, item->handle) < 0) {
-        OSReport("WUPSConfigItemButtonComboAddToCategoryEx: Failed to add item to category.\n");
-        WUPSConfigItem_Destroy(item->handle);
-        return false;
+    *outHandle = item->handle;
+    return WUPSCONFIG_API_RESULT_SUCCESS;
+}
+
+
+extern "C" WUPSConfigAPIStatus
+WUPSConfigItemButtonCombo_AddToCategoryEx(WUPSConfigCategoryHandle cat,
+                                          const char *identifier,
+                                          const char *displayName,
+                                          uint32_t defaultComboInVPADButtons, uint32_t currentComboInVPADButtons,
+                                          uint32_t holdDurationInMs, VPADButtons abortButton, uint32_t abortButtonHoldDurationInMs,
+                                          ButtonComboValueChangedCallback callback) {
+    WUPSConfigItemHandle itemHandle;
+    WUPSConfigAPIStatus res;
+    if ((res = WUPSConfigItemButtonCombo_CreateEx(identifier,
+                                                  displayName,
+                                                  defaultComboInVPADButtons, currentComboInVPADButtons,
+                                                  holdDurationInMs, abortButton, abortButtonHoldDurationInMs,
+                                                  callback, &itemHandle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
+        return res;
     }
-    return true;
+
+    if ((res = WUPSConfigAPI_Category_AddItem(cat, itemHandle)) != WUPSCONFIG_API_RESULT_SUCCESS) {
+
+        WUPSConfigAPI_Item_Destroy(itemHandle);
+        return res;
+    }
+    return WUPSCONFIG_API_RESULT_SUCCESS;
 }
 
 extern "C" bool
-WUPSConfigItemButtonComboAddToCategory(WUPSConfigCategoryHandle cat, const char *configID, const char *displayName, uint32_t defaultComboInVPADButtons, ButtonComboValueChangedCallback callback) {
-    return WUPSConfigItemButtonComboAddToCategoryEx(cat, configID, displayName, defaultComboInVPADButtons, 2000, VPAD_BUTTON_B, 250, callback);
+WUPSConfigItemButtonComboAddToCategory(WUPSConfigCategoryHandle cat, const char *displayName, uint32_t defaultComboInVPADButtons, uint32_t currentComboInVPADButtons, ButtonComboValueChangedCallback callback) {
+    return WUPSConfigItemButtonComboAddToCategoryEx(cat, displayName, defaultComboInVPADButtons, currentComboInVPADButtons, 2000, VPAD_BUTTON_B, 250, callback);
 }
