@@ -4,19 +4,21 @@
 #include <notifications/notifications.h>
 #include <string>
 
-extern bool gEnabled;
-extern ImageSourceEnum gImageSource;
 extern GX2SurfaceFormat gTVSurfaceFormat;
 extern GX2SurfaceFormat gDRCSurfaceFormat;
+
+extern ImageSourceEnum gImageSource;
+extern bool gEnabled;
 extern uint32_t gButtonCombo;
 extern int32_t gQuality;
 extern ImageOutputFormatEnum gOutputFormat;
+extern bool gReservedBitUsage;
+
 extern std::string gShortNameEn;
 
 extern ScreenshotState gTakeScreenshotTV;
 extern ScreenshotState gTakeScreenshotDRC;
 
-extern bool gReservedBitUsage;
 
 extern bool gInProgressNotificationDisplayedDRC;
 extern bool gInProgressNotificationDisplayedTV;
