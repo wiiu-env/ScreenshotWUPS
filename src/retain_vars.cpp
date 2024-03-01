@@ -14,8 +14,8 @@ bool gReservedBitUsage              = RESERVED_BIT_USAGE_CONFIG_DEFAULT;
 
 std::string gShortNameEn;
 
-ScreenshotState gTakeScreenshotTV  = SCREENSHOT_STATE_READY;
-ScreenshotState gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+ScreenshotStateInfo gTakeScreenshotTV  = {SCREENSHOT_STATE_READY};
+ScreenshotStateInfo gTakeScreenshotDRC = {SCREENSHOT_STATE_READY};
 
 bool gInProgressNotificationDisplayedDRC = false;
 bool gInProgressNotificationDisplayedTV  = false;

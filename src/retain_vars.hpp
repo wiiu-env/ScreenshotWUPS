@@ -16,8 +16,8 @@ extern bool gReservedBitUsage;
 
 extern std::string gShortNameEn;
 
-extern ScreenshotState gTakeScreenshotTV;
-extern ScreenshotState gTakeScreenshotDRC;
+extern ScreenshotStateInfo gTakeScreenshotTV;
+extern ScreenshotStateInfo gTakeScreenshotDRC;
 
 
 extern bool gInProgressNotificationDisplayedDRC;
