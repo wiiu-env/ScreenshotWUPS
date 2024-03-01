@@ -217,7 +217,7 @@ WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle ro
                                                &boolItemCallback));
 
     } catch (std::exception &e) {
-        OSReport("Exception T_T : %s\n", e.what());
+        OSReport("Exception: %s\n", e.what());
         return WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
     }
 

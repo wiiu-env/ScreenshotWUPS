@@ -1,5 +1,6 @@
 #pragma once
 
+#include <coreinit/time.h>
 #define WIIU_SCREENSHOT_PATH "fs:/vol/external01/wiiu/screenshots/"
 
 enum ImageOutputFormatEnum {
@@ -18,4 +19,9 @@ enum ScreenshotState {
     SCREENSHOT_STATE_READY,
     SCREENSHOT_STATE_REQUESTED,
     SCREENSHOT_STATE_SAVING,
+};
+
+struct ScreenshotStateInfo {
+    ScreenshotState state;
+    OSCalendarTime time;
 };

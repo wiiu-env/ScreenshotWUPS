@@ -180,14 +180,14 @@ static bool copyBuffer(GX2ColorBuffer *sourceBuffer, GX2ColorBuffer *targetBuffe
 void ScreenshotSavedCallback(NotificationModuleHandle handle, void *context) {
     auto scanTarget = (GX2ScanTarget) (uint32_t) context;
     if (scanTarget == GX2_SCAN_TARGET_TV) {
-        gTakeScreenshotTV = SCREENSHOT_STATE_READY;
+        gTakeScreenshotTV.state = SCREENSHOT_STATE_READY;
     } else {
-        gTakeScreenshotDRC = SCREENSHOT_STATE_READY;
+        gTakeScreenshotDRC.state = SCREENSHOT_STATE_READY;
     }
     OSMemoryBarrier();
 }
 
-bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality) {
+bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2SurfaceFormat outputBufferSurfaceFormat, ImageOutputFormatEnum outputFormat, int quality, const OSCalendarTime &time) {
     if (srcBuffer == nullptr) {
         DEBUG_FUNCTION_LINE_ERR("Source buffer was NULL");
         return false;
@@ -262,6 +262,7 @@ bool takeScreenshot(GX2ColorBuffer *srcBuffer, GX2ScanTarget scanTarget, GX2Surf
     param->quality            = quality;
     param->format             = colorBuffer.surface.format;
     param->scanTarget         = scanTarget;
+    param->time               = time;
 
     res = sendMessageToThread(param);
     if (!res) {

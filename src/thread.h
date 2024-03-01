@@ -27,6 +27,7 @@ struct SaveScreenshotMessage {
     bool convertRGBtoSRGB;
     int quality;
     GX2ScanTarget scanTarget;
+    OSCalendarTime time;
 };
 
 extern FSIOThreadData gThreadData;
