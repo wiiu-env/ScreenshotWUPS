@@ -206,9 +206,9 @@ WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle ro
                                                                possibleFormatValues,
                                                                &multipleValueItemCallback));
 
-        root.add(WUPSConfigItemIntegerRange::Create(FORMAT_CONFIG_STRING,
+        root.add(WUPSConfigItemIntegerRange::Create(QUALITY_CONFIG_STRING,
                                                     "JPEG quality",
-                                                    FORMAT_CONFIG_DEFAULT, gQuality,
+                                                    QUALITY_CONFIG_DEFAULT, gQuality,
                                                     10, 100,
                                                     &integerRangeItemCallback));
         root.add(WUPSConfigItemBoolean::Create(RESERVED_BIT_USAGE_CONFIG_STRING,
