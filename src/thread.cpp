@@ -4,7 +4,6 @@
 #include "screenshot_utils.h"
 #include "utils/StringTools.h"
 #include "utils/logger.h"
-#include "utils/utils.h"
 #include <coreinit/cache.h>
 #include <coreinit/title.h>
 #include <dirent.h>
@@ -14,9 +13,7 @@
 FSIOThreadData gThreadData;
 bool gThreadsRunning;
 
-bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::string &path) {
-    OSCalendarTime output;
-    OSTicksToCalendarTime(OSGetTime(), &output);
+static bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::string &path, OSCalendarTime &output) {
     std::string buffer = string_format("%s%016llX", WIIU_SCREENSHOT_PATH, OSGetTitleID());
     if (!gShortNameEn.empty()) {
         buffer += string_format(" (%s)", gShortNameEn.c_str());
@@ -66,7 +63,7 @@ bool getPath(GX2ScanTarget scanTarget, ImageOutputFormatEnum outputFormat, std::
     return true;
 }
 
-static int32_t fsIOthreadCallback([[maybe_unused]] int argc, const char **argv) {
+static int32_t fsIOThreadCallback([[maybe_unused]] int argc, const char **argv) {
     auto *magic = ((FSIOThreadData *) argv);
 
     constexpr int32_t messageSize = sizeof(magic->messages) / sizeof(magic->messages[0]);
@@ -81,7 +78,7 @@ static int32_t fsIOthreadCallback([[maybe_unused]] int argc, const char **argv) 
 
             std::string path;
             bool success = false;
-            if (getPath(message->scanTarget, message->outputFormat, path)) {
+            if (getPath(message->scanTarget, message->outputFormat, path, message->time)) {
                 DEBUG_FUNCTION_LINE("Saving to %s", path.c_str());
                 auto res = saveTextureAsPicture(path, message->sourceBuffer, message->width, message->height, message->pitch, message->format, message->outputFormat, message->convertRGBtoSRGB, message->quality);
                 if (res) {
@@ -155,7 +152,7 @@ void startFSIOThreads() {
 
     OSMemoryBarrier();
 
-    if (!OSCreateThread(threadData->thread, &fsIOthreadCallback, 1, (char *) threadData, reinterpret_cast<void *>((uint32_t) threadData->stack + stackSize), stackSize, 31, OS_THREAD_ATTRIB_AFFINITY_ANY)) {
+    if (!OSCreateThread(threadData->thread, &fsIOThreadCallback, 1, (char *) threadData, reinterpret_cast<void *>((uint32_t) threadData->stack + stackSize), stackSize, 31, OS_THREAD_ATTRIB_AFFINITY_ANY)) {
         free(threadData->thread);
         free(threadData->stack);
         threadData->setup = false;
