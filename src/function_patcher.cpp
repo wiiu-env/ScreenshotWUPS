@@ -93,7 +93,7 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *buffer, uint32_t buf
     VPADReadError real_error;
     int32_t result = real_VPADRead(chan, buffer, buffer_size, &real_error);
 
-    if (gEnabled) {
+    if (gEnabled && gButtonCombo != 0) {
         if (result > 0 && real_error == VPAD_READ_SUCCESS) {
             uint32_t end = 1;
             // Fix games like TP HD
@@ -130,7 +130,7 @@ static uint32_t sWasHoldForXFrame[4];
 DECL_FUNCTION(void, WPADRead, WPADChan chan, WPADStatusProController *data) {
     real_WPADRead(chan, data);
 
-    if (gEnabled && chan >= 0 && chan < 4) {
+    if (gEnabled && gButtonCombo > 0 && chan >= 0 && chan < 4) {
         if (data[0].err == 0) {
             if (data[0].extensionType != 0xFF) {
                 uint32_t curButtonHold = 0;

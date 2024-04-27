@@ -29,7 +29,7 @@ void InitConfig() {
         DEBUG_FUNCTION_LINE_ERR("Failed to init config api");
     }
 
-    gButtonCombo = VPAD_BUTTON_TV;
+    gButtonCombo = BUTTON_COMBO_CONFIG_DEFAULT;
 
     WUPSStorageError storageRes;
     if ((storageRes = WUPSStorageAPI::GetOrStoreDefault(ENABLED_CONFIG_STRING, gEnabled, ENABLED_CONFIG_DEFAULT)) != WUPS_STORAGE_ERROR_SUCCESS) {

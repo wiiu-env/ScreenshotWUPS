@@ -1,10 +1,11 @@
 #pragma once
+#include <vpad/input.h>
 
 #define ENABLED_CONFIG_DEFAULT            true
 #define FORMAT_CONFIG_DEFAULT             IMAGE_OUTPUT_FORMAT_JPEG
 #define QUALITY_CONFIG_DEFAULT            90
 #define SCREEN_CONFIG_DEFAULT             IMAGE_SOURCE_TV_AND_DRC
-#define BUTTON_COMBO_CONFIG_DEFAULT       0
+#define BUTTON_COMBO_CONFIG_DEFAULT       VPAD_BUTTON_TV
 #define RESERVED_BIT_USAGE_CONFIG_DEFAULT true
 
 #define ENABLED_CONFIG_STRING             "enabled"
