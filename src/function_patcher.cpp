@@ -252,9 +252,24 @@ DECL_FUNCTION(void, GX2MarkScanBufferCopied, GX2ScanTarget scan_target) {
 }
 
 WUPS_MUST_REPLACE(VPADRead, WUPS_LOADER_LIBRARY_VPAD, VPADRead);
+struct WUT_PACKED CCRCDCCallbackData {
+    uint32_t attached;
+    VPADChan chan;
+    WUT_UNKNOWN_BYTES(6);
+};
+
+DECL_FUNCTION(void, __VPADBASEAttachCallback, CCRCDCCallbackData *data, void *context) {
+    real___VPADBASEAttachCallback(data, context);
+
+    if (data && data->attached) {
+        gBlockDRCScreenshots = !data->attached;
+    }
+}
+
 WUPS_MUST_REPLACE(GX2MarkScanBufferCopied, WUPS_LOADER_LIBRARY_GX2, GX2MarkScanBufferCopied);
 WUPS_MUST_REPLACE(GX2GetCurrentScanBuffer, WUPS_LOADER_LIBRARY_GX2, GX2GetCurrentScanBuffer);
 WUPS_MUST_REPLACE(GX2CopyColorBufferToScanBuffer, WUPS_LOADER_LIBRARY_GX2, GX2CopyColorBufferToScanBuffer);
 WUPS_MUST_REPLACE(GX2SetTVBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetTVBuffer);
 WUPS_MUST_REPLACE(GX2SetDRCBuffer, WUPS_LOADER_LIBRARY_GX2, GX2SetDRCBuffer);
 WUPS_MUST_REPLACE(WPADRead, WUPS_LOADER_LIBRARY_PADSCORE, WPADRead);
+WUPS_MUST_REPLACE_PHYSICAL(__VPADBASEAttachCallback, (0x31000000 + 0x0200146c - 0x00EE0100), (0x0200146c - 0x00EE0100));
