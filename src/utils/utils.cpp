@@ -76,6 +76,7 @@ std::string GetSanitizedNameOfCurrentApplication() {
     } else {
         result.clear();
     }
+    ACPFinalize();
     return result;
 }
 
