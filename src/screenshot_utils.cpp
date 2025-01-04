@@ -4,13 +4,92 @@
 #include "thread.h"
 #include "utils/StringTools.h"
 #include "utils/utils.h"
-#include <coreinit/cache.h>
-#include <gd.h>
-#include <gx2/event.h>
-#include <gx2/mem.h>
+
 #include <memory/mappedmemory.h>
 #include <notifications/notifications.h>
-#include <valarray>
+
+#include <coreinit/cache.h>
+#include <gx2/event.h>
+#include <gx2/mem.h>
+
+#include <gd.h>
+
+namespace {
+    void AlreadyInProgressCallback(NotificationModuleHandle handle, void *context) {
+        auto scanTarget = (GX2ScanTarget) (uint32_t) context;
+        if (scanTarget == GX2_SCAN_TARGET_TV) {
+            gInProgressNotificationDisplayedTV = false;
+        } else if (scanTarget == GX2_SCAN_TARGET_DRC) {
+            gInProgressNotificationDisplayedDRC = false;
+        }
+        OSMemoryBarrier();
+    }
+
+    void NotAvailableCallback(NotificationModuleHandle handle, void *context) {
+        gNotAvailableNotificationDisplayed = false;
+        OSMemoryBarrier();
+    }
+} // namespace
+
+void RequestScreenshot() {
+    NotificationModuleStatus err;
+    if (gBlockScreenshots) {
+        if (!gNotAvailableNotificationDisplayed) {
+            if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshots not available at the moment.",
+                                                                           NotAvailableCallback,
+                                                                           nullptr)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshots not available at the moment.\" notification");
+                DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                return;
+            }
+
+            gNotAvailableNotificationDisplayed = true;
+        }
+    } else {
+        OSCalendarTime time;
+        OSTicksToCalendarTime(OSGetTime(), &time);
+        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_TV) {
+            if (gTakeScreenshotTV.state == SCREENSHOT_STATE_READY) {
+                DEBUG_FUNCTION_LINE("Requested screenshot for TV!");
+                gTakeScreenshotTV.state = SCREENSHOT_STATE_REQUESTED;
+                gTakeScreenshotTV.time  = time;
+                gReadySinceFramesTV     = 0;
+            } else if (!gInProgressNotificationDisplayedTV) {
+                if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the TV already in progress.",
+                                                                               AlreadyInProgressCallback,
+                                                                               (void *) GX2_SCAN_TARGET_TV)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshot of the TV already in progress.\" notification");
+                    DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                    return;
+                }
+                gInProgressNotificationDisplayedTV = true;
+            }
+        }
+        if (gImageSource == IMAGE_SOURCE_TV_AND_DRC || gImageSource == IMAGE_SOURCE_DRC) {
+            if (gBlockDRCScreenshots) {
+                DEBUG_FUNCTION_LINE("Screenshots are blocked for DRC because it's not connected");
+                return;
+            }
+            if (gTakeScreenshotDRC.state == SCREENSHOT_STATE_READY) {
+                DEBUG_FUNCTION_LINE("Requested screenshot for DRC!");
+                gTakeScreenshotDRC.state = SCREENSHOT_STATE_REQUESTED;
+                gTakeScreenshotDRC.time  = time;
+
+                gReadySinceFramesDRC = 0;
+            } else if (!gInProgressNotificationDisplayedDRC) {
+                if ((err = NotificationModule_AddErrorNotificationWithCallback("Screenshot of the GamePad already in progress.",
+                                                                               AlreadyInProgressCallback,
+                                                                               (void *) GX2_SCAN_TARGET_DRC)) != NOTIFICATION_MODULE_RESULT_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_ERR("Failed to display \"Screenshot of the GamePad already in progress.\" notification");
+                    DEBUG_FUNCTION_LINE_ERR("Error: %s,", NotificationModule_GetStatusStr(err));
+                    return;
+                }
+                gInProgressNotificationDisplayedDRC = true;
+            }
+        }
+        OSMemoryBarrier();
+    }
+}
 
 bool saveTextureAsPicture(const std::string &path, uint8_t *sourceBuffer, uint32_t width, uint32_t height, uint32_t pitch, GX2SurfaceFormat format, ImageOutputFormatEnum outputFormat, bool convertRGBtoSRGB, int quality) {
     if (sourceBuffer == nullptr) {

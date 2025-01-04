@@ -1,6 +1,7 @@
 #pragma once
 
 #include <coreinit/time.h>
+
 #define WIIU_SCREENSHOT_PATH "fs:/vol/external01/wiiu/screenshots/"
 
 enum ImageOutputFormatEnum {

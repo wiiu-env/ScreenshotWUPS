@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <padscore/kpad.h>
-#include <vpad/input.h>
 
 #define VPAD_BUTTON_RESERVED_BIT 0x80000
 

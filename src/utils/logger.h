@@ -58,6 +58,7 @@ extern "C" {
 
 #define DEBUG_FUNCTION_LINE_ERR(FMT, ARGS...)                                  LOG_EX_DEFAULT(OSReport, "##ERROR## ", "\n", FMT, ##ARGS)
 #define DEBUG_FUNCTION_LINE_WARN(FMT, ARGS...)                                 LOG_EX_DEFAULT(OSReport, "##WARN ## ", "\n", FMT, ##ARGS)
+#define DEBUG_FUNCTION_LINE_INFO(FMT, ARGS...)                                 LOG_EX_DEFAULT(OSReport, "##INFO ## ", "\n", FMT, ##ARGS)
 
 #define DEBUG_FUNCTION_LINE_ERR_LAMBDA(FILENAME, FUNCTION, LINE, FMT, ARGS...) LOG_EX(FILENAME, FUNCTION, LINE, OSReport, "##ERROR## ", "\n", FMT, ##ARGS);
 

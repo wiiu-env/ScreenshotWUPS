@@ -1,7 +1,9 @@
 #pragma once
-#include <cstdint>
+
 #include <memory>
 #include <string>
+
+#include <cstdint>
 
 extern uint8_t SRGBComponentToRGBTable[];
 extern uint8_t RGBComponentToSRGBTable[];
