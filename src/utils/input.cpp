@@ -1,5 +1,8 @@
 #include "input.h"
 
+#include <padscore/wpad.h>
+#include <vpad/input.h>
+
 uint32_t remapWiiMoteButtons(uint32_t buttons) {
     uint32_t conv_buttons = 0;
 

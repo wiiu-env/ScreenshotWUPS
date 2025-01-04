@@ -4,11 +4,14 @@
 #include "screenshot_utils.h"
 #include "utils/StringTools.h"
 #include "utils/logger.h"
+
+#include <memory/mappedmemory.h>
+
 #include <coreinit/cache.h>
 #include <coreinit/title.h>
+
 #include <dirent.h>
 #include <malloc.h>
-#include <memory/mappedmemory.h>
 
 FSIOThreadData gThreadData;
 bool gThreadsRunning;

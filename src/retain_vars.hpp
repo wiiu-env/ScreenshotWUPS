@@ -1,8 +1,19 @@
 #pragma once
 #include "common.h"
+
 #include <gx2/surface.h>
-#include <notifications/notifications.h>
+
+#include <notifications/notification_defines.h>
+
+#include <wups/button_combo/WUPSButtonCombo.h>
+#include <wups/button_combo/defines.h>
+
+#include <forward_list>
 #include <string>
+
+namespace WUPSButtonComboAPI {
+    class ButtonCombo;
+}
 
 extern GX2SurfaceFormat gTVSurfaceFormat;
 extern GX2SurfaceFormat gDRCSurfaceFormat;
@@ -18,7 +29,6 @@ extern std::string gShortNameEn;
 
 extern ScreenshotStateInfo gTakeScreenshotTV;
 extern ScreenshotStateInfo gTakeScreenshotDRC;
-
 
 extern bool gInProgressNotificationDisplayedDRC;
 extern bool gInProgressNotificationDisplayedTV;
@@ -36,3 +46,6 @@ extern bool gCheckIfScreenRendered;
 
 extern uint32_t gReadySinceFramesTV;
 extern uint32_t gReadySinceFramesDRC;
+
+extern WUPSButtonCombo_ComboHandle gButtonComboHandle;
+extern std::forward_list<WUPSButtonComboAPI::ButtonCombo> gButtonComboInstances;

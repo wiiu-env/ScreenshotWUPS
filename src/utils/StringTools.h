@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 template<typename... Args>
 std::string string_format(const std::string &format, Args... args) {
