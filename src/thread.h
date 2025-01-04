@@ -1,11 +1,12 @@
 #pragma once
 #include "common.h"
+
 #include "notifications/notifications.h"
+
 #include <coreinit/messagequeue.h>
 #include <coreinit/semaphore.h>
 #include <coreinit/thread.h>
 #include <gx2/enum.h>
-#include <memory.h>
 
 struct FSIOThreadData {
     OSThread *thread;

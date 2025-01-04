@@ -1,5 +1,7 @@
 #include "retain_vars.hpp"
 #include "config.h"
+
+
 #include <string>
 
 GX2SurfaceFormat gTVSurfaceFormat  = GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8;
@@ -33,3 +35,7 @@ bool gCheckIfScreenRendered  = false;
 
 uint32_t gReadySinceFramesTV  = 0;
 uint32_t gReadySinceFramesDRC = 0;
+
+
+WUPSButtonCombo_ComboHandle gButtonComboHandle(nullptr);
+std::forward_list<WUPSButtonComboAPI::ButtonCombo> gButtonComboInstances;
