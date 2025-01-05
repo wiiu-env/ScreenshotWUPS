@@ -162,6 +162,7 @@ void InitConfig() {
         DEBUG_FUNCTION_LINE_ERR("%s", errorMsg.c_str());
         NotificationModule_AddErrorNotification(errorMsg.c_str());
     } else {
+        gButtonComboHandle = buttonComboOpt->getHandle();
         gButtonComboInstances.emplace_front(std::move(*buttonComboOpt));
         if (comboStatus == WUPS_BUTTON_COMBO_COMBO_STATUS_CONFLICT) {
             const auto conflictMsg = "ScreenshotPlugin: Button combo was disabled due to a conflict with another combo. Please assign a different combo";
