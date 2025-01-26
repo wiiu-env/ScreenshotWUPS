@@ -156,9 +156,13 @@ void InitConfig() {
     WUPSButtonCombo_ComboStatus comboStatus;
     WUPSButtonCombo_Error comboError = WUPS_BUTTON_COMBO_ERROR_UNKNOWN_ERROR;
     auto buttonComboOpt              = WUPSButtonComboAPI::CreateComboPressDown(
-                         "Screenshot button combo", static_cast<WUPSButtonCombo_Buttons>(gButtonCombo), [](WUPSButtonCombo_ControllerTypes, WUPSButtonCombo_ComboHandle, void *) { RequestScreenshot(); }, nullptr, comboStatus, comboError);
+                         "Screenshot button combo", static_cast<WUPSButtonCombo_Buttons>(gButtonCombo),
+                         [](WUPSButtonCombo_ControllerTypes, WUPSButtonCombo_ComboHandle, void *) { RequestScreenshot(); },
+                         nullptr,
+                         comboStatus,
+                         comboError);
     if (!buttonComboOpt || comboError != WUPS_BUTTON_COMBO_ERROR_SUCCESS) {
-        const auto errorMsg = string_format("Failed to register button combo for screenshots. %s", WUPSButtonComboAPI::GetStatusStr(comboError).data());
+        const auto errorMsg = string_format("Failed to register button combo for screenshots. %s", WUPSButtonComboAPI::GetStatusStr(comboError));
         DEBUG_FUNCTION_LINE_ERR("%s", errorMsg.c_str());
         NotificationModule_AddErrorNotification(errorMsg.c_str());
     } else {

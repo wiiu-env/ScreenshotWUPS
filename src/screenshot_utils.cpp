@@ -32,6 +32,9 @@ namespace {
 } // namespace
 
 void RequestScreenshot() {
+    if (!gEnabled) {
+        return;
+    }
     NotificationModuleStatus err;
     if (gBlockScreenshots) {
         if (!gNotAvailableNotificationDisplayed) {
