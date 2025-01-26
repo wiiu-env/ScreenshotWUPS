@@ -12,13 +12,13 @@ The screenshots will be saved on the SD card in the folder `sd:/wiiu/screenshots
 4. Requires the [NotificationModule](https://github.com/wiiu-env/NotificationModule) in `sd:/wiiu/environments/[ENVIRONMENT]/modules`.
 
 ## Usage
-Press a button combo on the GamePad, Pro Controller or Classic Controller to take a screenshot.
+Press a button combo on the GamePad, Pro Controller, Wiimote or Classic Controller to take a screenshot.
 
 Via the plugin config menu (press L, DPAD Down and Minus on the GamePad, Pro Controller or Classic Controller) you can configure the plugin. The available options are the following:
 - **Settings**: 
   - Enabled: (Default is true)
     - Enables or disables the screenshot plugin.
-  - Button combo: (Default is TV-Button)
+  - Button combo: (Default is TV-Button + DPAD Left)
     - Changes the button combo for taking screenshots.
   - Screen: (Default is TV and GamePad)
     - Determines from which screen a screenshot should be taken. Possible options: TV & GamePad, TV only, GamePad only.
