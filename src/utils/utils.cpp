@@ -81,6 +81,7 @@ std::string GetSanitizedNameOfCurrentApplication() {
         result.clear();
     }
     ACPFinalize();
+    free(metaXml);
     return result;
 }
 
