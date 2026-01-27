@@ -43,6 +43,7 @@ extern "C" {
 
 #define DEBUG_FUNCTION_LINE_ERR(FMT, ARGS...)                                  LOG_EX_DEFAULT(WHBLogPrintf, "##ERROR## ", "", FMT, ##ARGS)
 #define DEBUG_FUNCTION_LINE_WARN(FMT, ARGS...)                                 LOG_EX_DEFAULT(WHBLogPrintf, "##WARN ## ", "", FMT, ##ARGS)
+#define DEBUG_FUNCTION_LINE_INFO(FMT, ARGS...)                                 LOG_EX_DEFAULT(WHBLogPrintf, "##INFO ## ", "", FMT, ##ARGS)
 
 #define DEBUG_FUNCTION_LINE_ERR_LAMBDA(FILENAME, FUNCTION, LINE, FMT, ARGS...) LOG_EX(FILENAME, FUNCTION, LINE, WHBLogPrintf, "##ERROR## ", "", FMT, ##ARGS);
 
