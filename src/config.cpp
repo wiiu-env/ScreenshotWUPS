@@ -198,7 +198,7 @@ void InitConfig() {
 
 void multipleValueItemCallback(ConfigItemMultipleValues *item, uint32_t newValue) {
     if (item && item->identifier) {
-        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->identifier, newValue);
         if (std::string_view(item->identifier) == FORMAT_CONFIG_STRING) {
             gOutputFormat = (ImageOutputFormatEnum) newValue;
 
@@ -227,7 +227,7 @@ void multipleValueItemCallback(ConfigItemMultipleValues *item, uint32_t newValue
 
 void integerRangeItemCallback(ConfigItemIntegerRange *item, int32_t newValue) {
     if (item && item->identifier) {
-        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->identifier, newValue);
         if (std::string_view(item->identifier) == QUALITY_CONFIG_STRING) {
             gQuality = (ImageOutputFormatEnum) newValue;
 
@@ -247,7 +247,7 @@ void integerRangeItemCallback(ConfigItemIntegerRange *item, int32_t newValue) {
 
 void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
     if (item && item->identifier) {
-        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->configId, newValue);
+        DEBUG_FUNCTION_LINE("New value in %s changed: %d", item->identifier, newValue);
         if (std::string_view(item->identifier) == ENABLED_CONFIG_STRING) {
             gEnabled = newValue;
             if (gEnabled) {
@@ -270,7 +270,7 @@ void boolItemCallback(ConfigItemBoolean *item, bool newValue) {
 
 void buttonComboItemChanged(ConfigItemButtonCombo *item, uint32_t newValue) {
     if (item && item->identifier) {
-        DEBUG_FUNCTION_LINE("New value in %s changed: %08X", item->configId, newValue);
+        DEBUG_FUNCTION_LINE("New value in %s changed: %08X", item->identifier, newValue);
         if (std::string_view(item->identifier) == BUTTON_COMBO_CONFIG_STRING) {
             gButtonCombo = newValue;
             WUPSStorageError err;
