@@ -50,38 +50,40 @@ std::string GetSanitizedNameOfCurrentApplication() {
     std::string result;
     ACPInitialize();
     auto *metaXml = (ACPMetaXml *) memalign(0x40, sizeof(ACPMetaXml));
-    if (ACPGetTitleMetaXml(OSGetTitleID(), metaXml) == ACP_RESULT_SUCCESS) {
-        result                   = metaXml->shortname_en;
-        std::string illegalChars = "\\/:?\"<>|@=;`_^][";
-        for (auto it = result.begin(); it < result.end(); ++it) {
-            if (*it < '0' || *it > 'z') {
-                *it = ' ';
+    if (metaXml) {
+        if (ACPGetTitleMetaXml(OSGetTitleID(), metaXml) == ACP_RESULT_SUCCESS) {
+            result                   = metaXml->shortname_en;
+            std::string illegalChars = "\\/:?\"<>|@=;`_^][";
+            for (auto it = result.begin(); it < result.end(); ++it) {
+                if (*it < '0' || *it > 'z') {
+                    *it = ' ';
+                }
             }
-        }
-        for (auto it = result.begin(); it < result.end(); ++it) {
-            bool found = illegalChars.find(*it) != std::string::npos;
-            if (found) {
-                *it = ' ';
+            for (auto it = result.begin(); it < result.end(); ++it) {
+                bool found = illegalChars.find(*it) != std::string::npos;
+                if (found) {
+                    *it = ' ';
+                }
             }
-        }
-        uint32_t length = result.length();
-        for (uint32_t i = 1; i < length; ++i) {
-            if (result[i - 1] == ' ' && result[i] == ' ') {
-                result.erase(i, 1);
-                i--;
-                length--;
+            uint32_t length = result.length();
+            for (uint32_t i = 1; i < length; ++i) {
+                if (result[i - 1] == ' ' && result[i] == ' ') {
+                    result.erase(i, 1);
+                    i--;
+                    length--;
+                }
             }
-        }
-        if (result.size() == 1 && result[0] == ' ') {
-            result.clear();
+            if (result.size() == 1 && result[0] == ' ') {
+                result.clear();
+            } else {
+                DEBUG_FUNCTION_LINE("Detected name as \"%s\"", result.c_str());
+            }
         } else {
-            DEBUG_FUNCTION_LINE("Detected name as \"%s\"", result.c_str());
+            result.clear();
         }
-    } else {
-        result.clear();
+        free(metaXml);
     }
     ACPFinalize();
-    free(metaXml);
     return result;
 }
 
