@@ -146,7 +146,7 @@ void startFSIOThreads() {
         return;
     }
     threadData->stack = (uint8_t *) memalign(0x20, stackSize);
-    if (!threadData->thread) {
+    if (!threadData->stack) {
         free(threadData->thread);
         DEBUG_FUNCTION_LINE_ERR("Failed to allocate threadData stack");
         OSFatal("ScreenshotPlugin: Failed to allocate IO Thread stack");
